@@ -8,7 +8,7 @@ An interactive Hertzsprung-Russell Diagram. Developed using the **SAIL** (Scient
 - Select from 25 curated real stars (SIMBAD / Hipparcos / Gaia DR3)
 - **Compare mode**: size-compare any two stars side by side with three radius scales (log, real, normalized)
 - Toggle diagram layers: R isolines, ZAMS, region labels, known-star dots, colour background
-- Fully responsive — desktop + mobile (three-tab layout on small screens)
+- Fully responsive — desktop sidebar, tablet overlay card, mobile bottom sheet + two-tab layout
 
 ## Run locally
 

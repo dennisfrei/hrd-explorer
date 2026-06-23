@@ -54,15 +54,3 @@ export function updateListSel(selName, cmpName) {
   });
 }
 
-// Mobile tab visibility. `onShown(tab)` lets main.js re-run layout/redraw
-// for the pane that just became visible.
-export function switchTab(tab, isMobile, onShown) {
-  if (!isMobile) return;
-  document.getElementById('hrd-wrap').classList.toggle('tab-active', tab === 'diagram');
-  document.getElementById('rpanel').classList.toggle('tab-active', tab === 'info');
-  document.getElementById('slist-wrap').classList.toggle('tab-active', tab === 'stars');
-  document.getElementById('tab-diagram').classList.toggle('on', tab === 'diagram');
-  document.getElementById('tab-info').classList.toggle('on', tab === 'info');
-  document.getElementById('tab-stars').classList.toggle('on', tab === 'stars');
-  if (onShown) onShown(tab);
-}

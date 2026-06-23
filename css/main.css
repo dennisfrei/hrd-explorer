@@ -3,26 +3,72 @@
   --bg:#050508;--panel:#0b0b14;--border:rgba(140,160,220,0.1);
   --text:#8899bb;--dim:#445566;--hi:#ccd8ee;
   --mono:'JetBrains Mono',monospace;--sans:'Space Grotesk',sans-serif;
-  --tab-h:52px;
+  --panel-w:320px;--tab-h:52px;
 }
+
+/* Use 100% height on html/body so the app shell can fill the real visible
+   viewport — avoids the iOS Safari "100vh includes address bar" clip. */
 html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-family:var(--sans);overflow:hidden;user-select:none;}
 
-/* ── DESKTOP ── */
-#app{display:grid;grid-template-columns:1fr 310px;grid-template-rows:46px 1fr;width:100vw;height:100vh;}
-#header{grid-column:1/-1;display:flex;align-items:center;padding:0 18px;gap:20px;border-bottom:1px solid var(--border);}
+/* ── APP SHELL ── */
+#app{display:flex;flex-direction:column;width:100%;height:100%;}
+
+/* ── HEADER ── */
+#header{flex-shrink:0;height:46px;display:flex;align-items:center;padding:0 18px;gap:20px;border-bottom:1px solid var(--border);}
 #header h1{font-size:12px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--hi);}
-.hsub{font-size:10px;color:var(--dim);letter-spacing:.06em;}
 .hsep{flex:1;}
 .hbtn{font-family:var(--sans);font-size:10px;letter-spacing:.08em;text-transform:uppercase;background:none;border:1px solid var(--border);color:var(--dim);padding:3px 9px;border-radius:2px;cursor:pointer;transition:all .15s;}
 .hbtn:hover,.hbtn.on{border-color:rgba(140,160,220,.4);color:var(--hi);background:rgba(140,160,220,.06);}
-#hrd-wrap{position:relative;overflow:hidden;background:var(--bg);}
+
+/* ── CONTENT AREA ── */
+#content-area{flex:1;min-height:0;display:flex;overflow:hidden;position:relative;}
+
+/* ── HRD CANVAS ── */
+#hrd-wrap{flex:1;min-width:0;position:relative;overflow:hidden;background:var(--bg);}
 #hrd-canvas{position:absolute;inset:0;cursor:crosshair;}
-#rpanel{display:flex;flex-direction:column;border-left:1px solid var(--border);overflow:hidden;}
+
+/* ── DRAG HANDLE (desktop only, shown when panel is open) ── */
+#drag-handle{
+  flex-shrink:0;width:5px;
+  cursor:col-resize;
+  border-left:1px solid var(--border);
+  background:transparent;
+  transition:background .1s;
+  display:none; /* JS adds .is-open to show it */
+}
+#drag-handle.is-open{display:block;}
+#drag-handle:hover,#drag-handle.dragging{background:rgba(140,160,220,.18);}
+
+/* ── INFO PANEL — base (desktop: in-flow sidebar) ── */
+#rpanel{
+  flex-shrink:0;
+  width:var(--panel-w);
+  display:none;      /* closed by default; JS adds .is-open */
+  flex-direction:column;
+  overflow:hidden;
+  background:var(--panel);
+  position:relative;
+}
+#rpanel.is-open{display:flex;}
+
+/* Close button */
+#close-panel{
+  position:absolute;top:8px;right:10px;z-index:10;
+  background:none;border:1px solid transparent;border-radius:2px;
+  cursor:pointer;color:var(--dim);font-size:15px;line-height:1;
+  width:26px;height:26px;display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);transition:all .15s;
+}
+#close-panel:hover{color:var(--hi);border-color:var(--border);}
+
+/* ── STAR PREVIEW ── */
 #star-preview{position:relative;height:210px;flex-shrink:0;background:#020204;border-bottom:1px solid var(--border);overflow:hidden;}
 #star-canvas{position:absolute;inset:0;}
 #scale-toggle{position:absolute;bottom:8px;right:8px;font-family:var(--sans);font-size:9px;letter-spacing:.08em;text-transform:uppercase;background:rgba(8,8,18,.85);border:1px solid var(--border);color:var(--dim);padding:3px 8px;border-radius:2px;cursor:pointer;transition:all .15s;z-index:2;}
 #scale-toggle.on,#scale-toggle:hover{border-color:rgba(140,160,220,.45);color:var(--hi);}
 #star-label{position:absolute;bottom:9px;left:10px;font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:.05em;}
+
+/* ── DATA PANEL ── */
 #dpanel{flex:1;overflow-y:auto;padding:14px;scrollbar-width:thin;scrollbar-color:var(--border) transparent;}
 .dg{margin-bottom:18px;}
 .dgt{font-size:9px;letter-spacing:.13em;text-transform:uppercase;color:var(--dim);margin-bottom:8px;border-bottom:1px solid var(--border);padding-bottom:4px;}
@@ -35,6 +81,8 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 .lbtn.on{border-color:rgba(140,160,220,.45);color:var(--hi);background:rgba(140,160,220,.07);}
 #cmp-note{font-size:10px;color:var(--dim);padding:3px 0;display:none;}
 #cmp-note.show{display:block;}
+
+/* ── STAR LIST (inside panel) ── */
 #slist{flex-shrink:0;border-top:1px solid var(--border);max-height:175px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent;}
 .slt{font-size:9px;letter-spacing:.13em;text-transform:uppercase;color:var(--dim);padding:7px 14px 5px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--panel);}
 .si{display:flex;align-items:center;gap:7px;padding:4px 14px;cursor:pointer;transition:background .1s;border-bottom:1px solid rgba(140,160,220,.03);}
@@ -43,118 +91,106 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 .sdot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
 .sn{font-size:11px;color:var(--hi);flex:1;}
 .ss{font-family:var(--mono);font-size:9px;color:var(--dim);}
+
+/* ── TOOLTIP ── */
 #tooltip{position:fixed;pointer-events:none;background:rgba(8,8,18,.95);border:1px solid var(--border);padding:5px 9px;border-radius:2px;font-family:var(--mono);font-size:10px;color:var(--hi);opacity:0;transition:opacity .1s;z-index:100;white-space:nowrap;}
 
-/* ── MOBILE TAB BAR ── */
+/* ── MOBILE STARS PANE ── */
+/* display:none in base — only shown as the "Stars" tab content on mobile */
+#slist-wrap{display:none;flex-direction:column;overflow-y:auto;}
+#slist-wrap.is-active{display:flex;flex:1;min-height:0;}
+#slist-wrap .slt{padding:10px 14px 8px;background:var(--panel);position:sticky;top:0;}
+#slist-items-mobile{flex:1;overflow-y:auto;}
+
+/* ── TAB BAR ── */
+/* Hidden by default; shown only on mobile */
 #tab-bar{display:none;}
+.tab-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:none;border:none;cursor:pointer;color:var(--dim);font-family:var(--sans);font-size:9px;letter-spacing:.08em;text-transform:uppercase;transition:color .15s;-webkit-tap-highlight-color:transparent;}
+.tab-btn svg{opacity:.45;transition:opacity .15s;}
+.tab-btn.on{color:var(--hi);}
+.tab-btn.on svg{opacity:1;}
+.tab-btn:active{background:rgba(140,160,220,.05);}
 
-/* ── MOBILE OVERRIDES ── */
-@media (max-width: 767px) {
-  html,body{overflow:hidden;position:fixed;width:100%;height:100%;}
-
-  #app{
-    display:flex;
-    flex-direction:column;
-    width:100vw;
-    height:100vh;
-    grid-template-columns:unset;
-    grid-template-rows:unset;
-  }
-
-  /* slim header on mobile */
-  #header{
-    flex-shrink:0;
-    height:40px;
-    padding:0 14px;
-    gap:10px;
-  }
-  #header h1{font-size:11px;}
-  .hsub{display:none;}
-  /* mode buttons still visible */
-  .hbtn{font-size:9px;padding:2px 7px;}
-
-  /* HRD wrap: full screen pane, hidden when not active tab */
-  #hrd-wrap{
-    flex:1;
-    min-height:0;
-    display:none;
-  }
-  #hrd-wrap.tab-active{display:block;}
-
-  /* right panel becomes a scrollable pane */
-  #rpanel{
-    flex:1;
-    min-height:0;
-    display:none;
-    border-left:none;
-    border-top:1px solid var(--border);
-    overflow-y:auto;
-  }
-  #rpanel.tab-active{display:flex;}
-
-  /* star preview taller on mobile */
-  #star-preview{height:180px;}
-
-  /* slist becomes full-height in stars tab */
-  #slist{
-    display:none;
-    max-height:unset;
-    flex:1;
-    border-top:none;
-  }
-  #slist.tab-active{
-    display:flex;
-    flex-direction:column;
-    flex:1;
-    min-height:0;
-    overflow-y:auto;
-    border-top:1px solid var(--border);
-  }
-
-  /* dpanel scrollable */
-  #dpanel{flex:1;overflow-y:auto;}
-
-  /* ── Tab bar ── */
-  #tab-bar{
-    display:flex;
-    flex-shrink:0;
-    height:var(--tab-h);
-    border-top:1px solid var(--border);
-    background:var(--panel);
-  }
-  .tab-btn{
-    flex:1;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    gap:3px;
-    background:none;
-    border:none;
-    cursor:pointer;
-    color:var(--dim);
-    font-family:var(--sans);
-    font-size:9px;
-    letter-spacing:.08em;
-    text-transform:uppercase;
-    transition:color .15s;
-    -webkit-tap-highlight-color:transparent;
-  }
-  .tab-btn svg{opacity:.45;transition:opacity .15s;}
-  .tab-btn.on{color:var(--hi);}
-  .tab-btn.on svg{opacity:1;}
-  .tab-btn:active{background:rgba(140,160,220,.05);}
-
-  /* hide tooltip on mobile */
+/* ══════════════════════════════════════════
+   TABLET  640 – 1023 px
+   Info panel = right-side overlay card.
+   HRD always fills the full viewport width.
+   Tab bar hidden; panel open/close via card.
+   ══════════════════════════════════════════ */
+@media (min-width:640px) and (max-width:1023px){
+  #drag-handle{display:none !important;}
+  #slist-wrap{display:none !important;}
+  #tab-bar{display:none;}
   #tooltip{display:none;}
 
-  /* stars list full size when in its own mobile tab */
-  #slist-wrap{
-    display:none;
-    flex:1;
-    min-height:0;
+  /* Panel becomes a right-anchored overlay that slides in */
+  #rpanel{
+    position:absolute;right:0;top:0;bottom:0;
+    width:340px !important;
+    border-left:1px solid var(--border);
+    box-shadow:-8px 0 32px rgba(0,0,0,.5);
+    z-index:20;
     overflow-y:auto;
-    flex-direction:column;
+    /* Always in DOM for transition; visibility driven by transform */
+    display:flex !important;
+    transform:translateX(110%);
+    transition:transform .25s ease;
   }
-  #slist-wrap.tab-active{display:flex;}
+  #rpanel.is-open{transform:translateX(0);}
+  #star-preview{height:180px;}
+  #slist{max-height:none;flex:1;}
+}
+
+/* ══════════════════════════════════════════
+   MOBILE  < 640 px
+   Info panel = bottom-sheet overlay.
+   Tab bar = 2 tabs: Diagram | Stars.
+   ══════════════════════════════════════════ */
+@media (max-width:639px){
+  #header{height:40px;padding:0 14px;gap:10px;}
+  #header h1{font-size:11px;}
+  #tooltip{display:none;}
+  #drag-handle{display:none !important;}
+  #slist{display:none;} /* stars accessible via Stars tab */
+
+  /* Content area fills remaining space between header and tab bar */
+  #content-area{position:relative;}
+
+  /* Hide content-area when Stars tab is active */
+  #content-area.tab-hidden{display:none;}
+
+  /* Panel = fixed bottom sheet; always rendered for smooth animation */
+  #rpanel{
+    position:fixed;bottom:0;left:0;right:0;
+    width:100% !important;
+    max-height:72vh;
+    border-radius:12px 12px 0 0;
+    border:1px solid var(--border);border-bottom:none;
+    box-shadow:0 -8px 40px rgba(0,0,0,.6);
+    z-index:50;
+    display:flex !important;
+    flex-direction:column;
+    overflow-y:auto;
+    transform:translateY(110%);
+    transition:transform .3s cubic-bezier(.4,0,.2,1);
+  }
+  #rpanel.is-open{transform:translateY(0);}
+
+  /* Bottom-sheet drag pill */
+  #rpanel::before{
+    content:'';display:block;
+    width:36px;height:4px;border-radius:2px;
+    background:rgba(140,160,220,.18);
+    margin:10px auto 2px;flex-shrink:0;
+  }
+
+  #star-preview{height:160px;}
+
+  /* Tab bar */
+  #tab-bar{
+    display:flex;flex-shrink:0;height:var(--tab-h);
+    border-top:1px solid var(--border);background:var(--panel);
+    /* Ensure it sits above the bottom sheet */
+    position:relative;z-index:60;
+  }
 }

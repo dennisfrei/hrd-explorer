@@ -1,22 +1,20 @@
 // ═══════════════════════════════════
 // MAIN — entry point, state owner, wiring
 // ═══════════════════════════════════
-// Owns all mutable state and the canvas contexts. Every other module is
-// pure or receives what it needs as arguments.
 
 import { calcR } from './physics.js';
 import { STARS } from './stars.js';
 import { R, setR } from './coords.js';
 import { drawHRD } from './hrd-renderer.js';
 import { drawPreview } from './preview-renderer.js';
-import { updatePanel, buildListIn, updateListSel, switchTab } from './ui.js';
+import { updatePanel, buildListIn, updateListSel } from './ui.js';
 import { attachHandlers } from './interaction.js';
 
 // ── Canvas refs ──
 const hc = document.getElementById('hrd-canvas'), hx = hc.getContext('2d');
 const sc = document.getElementById('star-canvas'), sx = sc.getContext('2d');
 
-// ── State (single owner) ──
+// ── State ──
 const state = {
   layers: { radius: true, zams: true, regions: true, stars: true, color: false },
   scaleMode: 'log',
@@ -24,10 +22,12 @@ const state = {
   cmpStar: null,
   compareMode: false,
   hover: null,
-  activeTab: 'diagram', // 'diagram' | 'info' | 'stars'
+  activeTab: 'diagram', // mobile only: 'diagram' | 'stars'
+  panelOpen: false,
 };
 
-const isMobile = () => window.innerWidth < 768;
+const isMobile = () => window.innerWidth < 640;
+const isTablet = () => window.innerWidth >= 640 && window.innerWidth < 1024;
 
 // ── Drawing ──
 function drawDiagram() { drawHRD(hx, R, state); }
@@ -39,8 +39,28 @@ function drawSelection() {
   updatePanel(state.selStar.teff, state.selStar.logL, state.selStar.name);
 }
 
+// ── Panel open / close ──
+function openPanel() {
+  if (state.panelOpen) return;
+  state.panelOpen = true;
+  document.getElementById('rpanel').classList.add('is-open');
+  // Drag handle only visible on desktop
+  if (!isMobile() && !isTablet()) {
+    document.getElementById('drag-handle').classList.add('is-open');
+    resize();
+  }
+  requestAnimationFrame(drawSelection);
+}
+
+function closePanel() {
+  if (!state.panelOpen) return;
+  state.panelOpen = false;
+  document.getElementById('rpanel').classList.remove('is-open');
+  document.getElementById('drag-handle').classList.remove('is-open');
+  if (!isMobile() && !isTablet()) resize();
+}
+
 // ── Selection ──
-// Accepts a named STAR or a synthetic {teff, logL, name:null, spec} point.
 function pick(obj) {
   const isSecond = state.compareMode && state.selStar && !(obj.name && obj.name === state.selStar.name);
   if (isSecond) {
@@ -49,36 +69,73 @@ function pick(obj) {
     state.cmpStar = null;
     state.selStar = obj;
   }
+  openPanel();
+  // On mobile Stars tab, switch back to Diagram so the HRD is visible
+  if (isMobile() && state.activeTab === 'stars') goTab('diagram');
   drawSelection();
   updateListSel(state.selStar && state.selStar.name, state.cmpStar && state.cmpStar.name);
   drawDiagram();
-  if (isMobile()) goTab('info');
 }
 
-// ── Mobile tabs ──
+// ── Mobile tab switching (Diagram | Stars only) ──
 function goTab(tab) {
+  if (!isMobile()) return;
   state.activeTab = tab;
-  switchTab(tab, isMobile(), onTabShown);
-}
-function onTabShown(tab) {
-  if (tab === 'diagram') requestAnimationFrame(resize);
-  if (tab === 'info' && state.selStar) requestAnimationFrame(drawSelection);
+  const diagActive = tab === 'diagram';
+  // Show/hide content-area (HRD) vs stars pane
+  document.getElementById('content-area').classList.toggle('tab-hidden', !diagActive);
+  document.getElementById('slist-wrap').classList.toggle('is-active', !diagActive);
+  document.getElementById('tab-diagram').classList.toggle('on', diagActive);
+  document.getElementById('tab-stars').classList.toggle('on', !diagActive);
+  if (diagActive) requestAnimationFrame(resize);
 }
 
 // ── Resize ──
 function resize() {
   const wrap = document.getElementById('hrd-wrap');
   hc.width = wrap.clientWidth; hc.height = wrap.clientHeight;
-  const pw = isMobile() ? window.innerWidth : 310;
-  const ph = isMobile() ? 180 : 210;
+  // Preview canvas: full width on mobile, panel width otherwise
+  const panelEl = document.getElementById('rpanel');
+  const pw = isMobile() ? window.innerWidth : panelEl.offsetWidth || parseInt(getComputedStyle(panelEl).width) || 320;
+  const ph = isMobile() ? 160 : isTablet() ? 180 : 210;
   sc.width = pw; sc.height = ph;
   const pad = { t: 28, r: 18, b: 48, l: isMobile() ? 52 : 64 };
   setR(pad.l, pad.t, hc.width - pad.l - pad.r, hc.height - pad.t - pad.b);
   drawDiagram();
-  drawSelection();
+  if (state.panelOpen) drawSelection();
 }
 
-// ── Controls ──
+// ── Drag-to-resize (desktop only) ──
+const dragHandle = document.getElementById('drag-handle');
+let dragResizing = false, dragStartX = 0, panelStartW = 0;
+
+dragHandle.addEventListener('mousedown', e => {
+  dragResizing = true;
+  dragStartX = e.clientX;
+  panelStartW = document.getElementById('rpanel').offsetWidth;
+  document.body.style.cursor = 'col-resize';
+  document.body.style.userSelect = 'none';
+  dragHandle.classList.add('dragging');
+});
+window.addEventListener('mousemove', e => {
+  if (!dragResizing) return;
+  const delta = dragStartX - e.clientX; // drag left = panel wider
+  const newW = Math.max(240, Math.min(600, panelStartW + delta));
+  document.getElementById('rpanel').style.width = newW + 'px';
+  resize();
+});
+window.addEventListener('mouseup', () => {
+  if (!dragResizing) return;
+  dragResizing = false;
+  document.body.style.cursor = '';
+  document.body.style.userSelect = '';
+  dragHandle.classList.remove('dragging');
+});
+
+// ── Close button ──
+document.getElementById('close-panel').addEventListener('click', closePanel);
+
+// ── Mode controls ──
 document.getElementById('btn-explore').addEventListener('click', () => {
   state.compareMode = false; state.cmpStar = null;
   document.getElementById('btn-explore').classList.add('on');
@@ -112,8 +169,8 @@ scaleBtn.addEventListener('click', () => {
   drawSelection();
 });
 
+// ── Mobile tab bar ──
 document.getElementById('tab-diagram').addEventListener('click', () => goTab('diagram'));
-document.getElementById('tab-info').addEventListener('click', () => goTab('info'));
 document.getElementById('tab-stars').addEventListener('click', () => goTab('stars'));
 
 // ── Canvas interaction ──
@@ -124,6 +181,7 @@ buildListIn('slist-items-desktop', pick);
 buildListIn('slist-items-mobile', pick);
 
 window.addEventListener('resize', () => {
+  // Re-apply mobile tab state in case orientation changed
   if (isMobile()) goTab(state.activeTab);
   resize();
 });
