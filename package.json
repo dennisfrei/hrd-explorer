@@ -1,0 +1,14 @@
+{
+  "name": "hrd-explorer",
+  "version": "1.0.0",
+  "description": "Interactive Hertzsprung-Russell Diagram Explorer (SAIL demo tool)",
+  "private": true,
+  "scripts": {
+    "lint": "eslint js/"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "eslint": "^9.0.0",
+    "globals": "^15.0.0"
+  }
+}
