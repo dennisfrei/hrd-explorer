@@ -181,11 +181,13 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
   /* Hide content-area when Stars tab is active */
   #content-area.tab-hidden{display:none;}
 
-  /* Panel = fixed bottom sheet; always rendered for smooth animation */
+  /* Panel = fixed bottom sheet; always rendered for smooth animation.
+     Anchored ABOVE the tab bar so its lower controls (Diagram Layers) are not
+     hidden behind the footer menu. */
   #rpanel{
-    position:fixed;bottom:0;left:0;right:0;
+    position:fixed;bottom:var(--tab-h);left:0;right:0;
     width:100% !important;
-    max-height:72vh;
+    max-height:calc(100vh - var(--tab-h) - 48px);
     border-radius:12px 12px 0 0;
     border:1px solid var(--border);border-bottom:none;
     box-shadow:0 -8px 40px rgba(0,0,0,.6);
@@ -251,6 +253,18 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
   display:flex;align-items:center;justify-content:center;font-family:var(--mono);transition:all .15s;
 }
 #close-understand:hover{color:var(--hi);border-color:var(--border);}
+/* Compact / Detailed mode toggle */
+.u-modes{display:flex;gap:5px;margin-left:auto;margin-right:14px;}
+.umode{
+  font-family:var(--sans);font-size:9px;letter-spacing:.08em;text-transform:uppercase;
+  background:none;border:1px solid var(--border);color:var(--dim);
+  padding:3px 9px;border-radius:2px;cursor:pointer;transition:all .15s;
+}
+.umode:hover{color:var(--hi);}
+.umode.on{border-color:var(--accent);color:var(--hi);background:rgba(140,160,220,.08);}
+/* Detail-only sections are hidden until the Detailed mode is selected */
+.detail-only{display:none;}
+#understand-body.detailed .detail-only{display:block;}
 #understand-body{
   flex:1;overflow-y:auto;padding:28px 22px 60px;
   max-width:760px;width:100%;margin:0 auto;
@@ -309,7 +323,10 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 .ucredit a:hover{text-decoration:underline;}
 
 @media (max-width:639px){
-  #understand-head{height:40px;padding:0 14px;}
+  #understand-head{height:40px;padding:0 12px;}
+  .uh-title{font-size:10px;}
+  .u-modes{margin-right:8px;gap:4px;}
+  .umode{padding:3px 6px;}
   #understand-body{padding:20px 16px 50px;}
   .usec p{font-size:12.5px;}
   .formula{padding:10px 11px;}

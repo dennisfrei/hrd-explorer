@@ -106,6 +106,10 @@
 <div id="understand">
   <div id="understand-head">
     <span class="uh-title">Understand the Physics</span>
+    <div class="u-modes">
+      <button class="umode on" id="umode-compact">Compact</button>
+      <button class="umode" id="umode-detailed">Detailed</button>
+    </div>
     <button id="close-understand" aria-label="Close">×</button>
   </div>
   <div id="understand-body">
@@ -164,6 +168,28 @@
       <p>Hot stars peak in the ultraviolet and appear blue; cool stars peak in the red and infrared. This drives the colour sequence shown by the dots and the optional colour background.</p>
     </section>
 
+    <section class="usec detail-only">
+      <h3>Blackbody radiation &amp; the Planck spectrum</h3>
+      <p>A star's photosphere is dense enough that radiation and matter are nearly in thermal equilibrium, so the emergent spectrum is close to that of an ideal blackbody at the effective temperature. The full spectral radiance follows <strong>Planck's law</strong>:</p>
+      <div class="formula"><math display="block">
+        <msub><mi>B</mi><mi>λ</mi></msub><mo>(</mo><mi>T</mi><mo>)</mo><mo>=</mo>
+        <mfrac><mrow><mn>2</mn><mi>h</mi><msup><mi>c</mi><mn>2</mn></msup></mrow><msup><mi>λ</mi><mn>5</mn></msup></mfrac>
+        <mfrac><mn>1</mn><mrow><msup><mi>e</mi><mrow><mi>h</mi><mi>c</mi><mo>/</mo><mi>λ</mi><msub><mi>k</mi><mtext>B</mtext></msub><mi>T</mi></mrow></msup><mo>−</mo><mn>1</mn></mrow></mfrac>
+      </math></div>
+      <p>This single curve ties the tool together: differentiating it gives <strong>Wien's law</strong> (the peak you see marked in the interactive spectrum), and integrating it over all wavelengths and solid angle gives the total emergent flux <math><mrow><mo>∝</mo><msup><mi>T</mi><mn>4</mn></msup></mrow></math> — the <strong>Stefan–Boltzmann law</strong>. Real spectra depart from a pure Planck curve: absorption lines, bound–free edges such as the Balmer jump, and limb darkening all imprint structure. The blackbody is the correct zeroth-order picture and the basis for the colours used here.</p>
+    </section>
+
+    <section class="usec detail-only">
+      <h3>LTE, NLTE &amp; the Stefan–Boltzmann law</h3>
+      <p>Treating the emergent spectrum as a blackbody assumes <strong>Local Thermodynamic Equilibrium (LTE)</strong>: at each depth the gas is described by a single temperature, atomic level populations follow the Boltzmann and Saha distributions, and the source function equals the Planck function. LTE holds well in the dense, collision-dominated deep photosphere.</p>
+      <p>In hot stars, in the thin atmospheres of giants, and within strong spectral lines, radiative transition rates outpace collisions and the level populations decouple from the local temperature. This is the <strong>Non-LTE (NLTE)</strong> regime, where the source function must be solved self-consistently with the radiation field rather than set equal to <math><msub><mi>B</mi><mi>λ</mi></msub></math>.</p>
+      <p>The effective temperature is <em>defined</em> through the bolometric luminosity so that it remains meaningful regardless:</p>
+      <div class="formula"><math display="block">
+        <mi>L</mi><mo>=</mo><mn>4</mn><mi>π</mi><msup><mi>R</mi><mn>2</mn></msup><mi>σ</mi><msubsup><mi>T</mi><mtext>eff</mtext><mn>4</mn></msubsup>
+      </math></div>
+      <p><math><msub><mi>T</mi><mtext>eff</mtext></msub></math> is the temperature of the blackbody that radiates the same total flux per unit surface area as the star. It is exactly this relation, inverted, that the diagram uses to draw the radius isolines.</p>
+    </section>
+
     <section class="usec">
       <h3>Spectral class &amp; colour</h3>
       <p>Stars are binned by temperature into the classes <strong>O B A F G K M</strong> (hottest to coolest). The colours used here follow a blackbody sequence that is monotonic from red through white to blue — a physical constraint, never an arbitrary palette.</p>
@@ -197,6 +223,14 @@
         <mo>,</mo><mn>0</mn><mo>,</mo><mn>1</mn><mo>)</mo>
       </math></div>
       <p>This is a simplified teaching estimate, not an isochrone fit: a star exactly on the ZAMS reads as essentially age zero, one near the top of the band as near τ_MS. Age is reported only on the main sequence, where the model applies.</p>
+    </section>
+
+    <section class="usec detail-only">
+      <h3>Stellar evolution — why L and R change</h3>
+      <p>A star's place in the diagram is fixed by just two quantities, its luminosity and its radius, and both evolve as the interior changes — so a track across the HR diagram <em>is</em> a star's life story.</p>
+      <p><strong>On the main sequence</strong>, core hydrogen fusion converts H into He, raising the mean molecular weight. The core slowly contracts and heats, fusion runs a little faster, and the star gradually brightens and expands — the upward drift away from the ZAMS that this tool turns into an age estimate.</p>
+      <p><strong>When core hydrogen runs out</strong>, the inert helium core contracts and a hydrogen-burning shell ignites around it. The envelope expands enormously and cools: the star moves right and up onto the <strong>red-giant branch</strong>, growing to tens or hundreds of solar radii at roughly constant — then rising — luminosity. Here radius changes dominate the motion in the diagram.</p>
+      <p><strong>Later stages</strong> — core helium burning, shell flashes, and for massive stars successive heavier-element burning — sweep the star across the upper diagram before its endpoint as a white dwarf, neutron star, or black hole. Throughout, the same two levers, the energy-generation rate (luminosity) and the radius set by the envelope's structure, decide where the star sits.</p>
     </section>
 
     <section class="usec">

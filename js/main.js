@@ -157,7 +157,8 @@ sheetGrip.addEventListener('touchmove', e => {
   e.preventDefault();
   const rpanelEl = document.getElementById('rpanel');
   const dy = e.touches[0].clientY - sheetDrag.startY; // down = positive
-  const minH = 120, maxH = Math.round(window.innerHeight * 0.9);
+  // Cap so the sheet never overruns the tab bar (52px) + header headroom.
+  const minH = 120, maxH = window.innerHeight - 100;
   let h = Math.min(maxH, sheetDrag.startH - dy);
   if (h < minH) {
     // Past the minimum height: translate the whole sheet down toward dismissal.
@@ -239,6 +240,20 @@ function setUnderstand(open) {
 btnUnderstand.addEventListener('click', () => setUnderstand(!understandEl.classList.contains('is-open')));
 document.getElementById('close-understand').addEventListener('click', () => setUnderstand(false));
 document.addEventListener('keydown', e => { if (e.key === 'Escape') setUnderstand(false); });
+
+// Understand detail level: compact (default) | detailed (extra deep-dive sections)
+const understandBody = document.getElementById('understand-body');
+const umodeCompact = document.getElementById('umode-compact');
+const umodeDetailed = document.getElementById('umode-detailed');
+function setUMode(detailed) {
+  understandBody.classList.toggle('detailed', detailed);
+  umodeDetailed.classList.toggle('on', detailed);
+  umodeCompact.classList.toggle('on', !detailed);
+  localStorage.setItem('hrd-u-mode', detailed ? 'detailed' : 'compact');
+}
+umodeCompact.addEventListener('click', () => setUMode(false));
+umodeDetailed.addEventListener('click', () => setUMode(true));
+setUMode(localStorage.getItem('hrd-u-mode') === 'detailed');
 
 // ── Theme (system / light / dark) ──
 const THEME_CYCLE = ['system', 'light', 'dark'];
