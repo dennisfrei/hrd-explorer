@@ -9,6 +9,7 @@ import { drawHRD } from './hrd-renderer.js';
 import { drawPreview } from './preview-renderer.js';
 import { updatePanel, buildListIn, updateListSel } from './ui.js';
 import { attachHandlers } from './interaction.js';
+import { initTheme, applyTheme, getPref } from './theme.js';
 
 // ── Canvas refs ──
 const hc = document.getElementById('hrd-canvas'), hx = hc.getContext('2d');
@@ -173,6 +174,34 @@ scaleBtn.addEventListener('click', () => {
 document.getElementById('tab-diagram').addEventListener('click', () => goTab('diagram'));
 document.getElementById('tab-stars').addEventListener('click', () => goTab('stars'));
 
+// ── Understand overlay ──
+const understandEl = document.getElementById('understand');
+const btnUnderstand = document.getElementById('btn-understand');
+function setUnderstand(open) {
+  understandEl.classList.toggle('is-open', open);
+  btnUnderstand.classList.toggle('on', open);
+}
+btnUnderstand.addEventListener('click', () => setUnderstand(!understandEl.classList.contains('is-open')));
+document.getElementById('close-understand').addEventListener('click', () => setUnderstand(false));
+document.addEventListener('keydown', e => { if (e.key === 'Escape') setUnderstand(false); });
+
+// ── Theme (system / light / dark) ──
+const THEME_CYCLE = ['system', 'light', 'dark'];
+const THEME_ICON = { system: '◐', light: '☀', dark: '☾' };
+function refreshThemeButton(pref) {
+  document.getElementById('theme-icon').textContent = THEME_ICON[pref];
+  document.getElementById('theme-label').textContent = pref.charAt(0).toUpperCase() + pref.slice(1);
+}
+function redrawAll() { drawDiagram(); if (state.panelOpen) drawSelection(); }
+document.getElementById('theme-toggle').addEventListener('click', () => {
+  const next = THEME_CYCLE[(THEME_CYCLE.indexOf(getPref()) + 1) % THEME_CYCLE.length];
+  applyTheme(next);
+  refreshThemeButton(next);
+  redrawAll();
+});
+initTheme(redrawAll);
+refreshThemeButton(getPref());
+
 // ── Canvas interaction ──
 attachHandlers(hc, state, { onUpdate: drawDiagram, onPick: pick, isMobile, stars: STARS, R });
 
@@ -188,3 +217,10 @@ window.addEventListener('resize', () => {
 
 resize();
 setTimeout(() => pick(STARS.find(s => s.name === 'Sun')), 80);
+
+// ── PWA service worker (skip on file://, where SW is unavailable) ──
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js', { scope: './' }).catch(() => {});
+  });
+}

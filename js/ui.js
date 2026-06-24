@@ -4,7 +4,7 @@
 // DOM-facing only. Renderers are not imported here; state is never read
 // directly — callers pass in values and callbacks.
 
-import { calcR, calcLmax, stype, lumClass, onZAMS, massOnZAMS, msLife, tc } from './physics.js';
+import { calcR, calcLmax, stype, lumClass, onZAMS, massOnZAMS, msLife, estAge, tc } from './physics.js';
 import { fmtR, fmtLife } from './format.js';
 import { STARS } from './stars.js';
 
@@ -20,9 +20,13 @@ export function updatePanel(teff, logL, name) {
     const m = massOnZAMS(teff);
     document.getElementById('v-mass').textContent = m ? m.toFixed(2) + ' M☉' : '—';
     document.getElementById('v-life').textContent = m ? fmtLife(msLife(m)) : '—';
+    const age = estAge(logL, teff);
+    document.getElementById('v-age').textContent =
+      age === null ? '—' : age < 5e7 ? '≲ 0 · near ZAMS' : '≈ ' + fmtLife(age);
   } else {
     document.getElementById('v-mass').textContent = 'n/a · not on ZAMS';
     document.getElementById('v-life').textContent = 'n/a';
+    document.getElementById('v-age').textContent = 'n/a · off main sequence';
   }
   document.getElementById('star-label').textContent = name
     ? `${name} · ${stype(teff)} · ${fmtR(Rv)}`

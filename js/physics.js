@@ -56,6 +56,23 @@ export function massOnZAMS(teff) {
 // Main-sequence lifetime (spec §2.3): t_MS ≈ 10^10 · (M/M☉)^(−2.5)
 export function msLife(m) { return 1e10 * Math.pow(m, -2.5); }
 
+// Estimated age — simplified educational model.
+// A star found on the main sequence has an age somewhere between 0 (when it
+// reached the ZAMS) and t_MS (when it leaves at the TAMS). As it burns core
+// hydrogen it brightens, drifting upward from the ZAMS line. We map that
+// vertical offset above the ZAMS onto the consumed fraction of the MS lifetime:
+//   f = clamp((logL − logL_ZAMS) / 0.55, 0, 1),  age ≈ f · t_MS
+// Returns null off the main sequence, where age is not constrained by (Teff, L)
+// alone. This is a teaching approximation, not an isochrone fit.
+export function estAge(logL, teff) {
+  if (!onZAMS(logL, teff)) return null;
+  const m = massOnZAMS(teff);
+  if (!m) return null;
+  const offset = logL - zamsL(teff);
+  const f = Math.max(0, Math.min(1, offset / 0.55));
+  return f * msLife(m);
+}
+
 // Luminosity class label (spec §2.5)
 export function lumClass(logL, teff) {
   const d = logL - zamsL(teff);

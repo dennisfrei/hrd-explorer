@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>HR Diagram Explorer</title>
+<meta name="theme-color" content="#0b0b14">
+<meta name="description" content="Interactive Hertzsprung-Russell Diagram — stellar physics, star-size comparison, and the formulas behind the diagram.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/favicon-64.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/main.css">
@@ -13,8 +20,12 @@
   <header id="header">
     <h1>HR Diagram Explorer</h1>
     <div class="hsep"></div>
-    <button class="hbtn on" id="btn-explore">Explore</button>
-    <button class="hbtn" id="btn-compare">Compare</button>
+    <div class="hgroup">
+      <button class="hbtn on" id="btn-explore">Explore</button>
+      <button class="hbtn" id="btn-compare">Compare</button>
+      <button class="hbtn" id="btn-understand">Understand</button>
+    </div>
+    <button class="hbtn theme-btn" id="theme-toggle" aria-label="Switch theme"><span id="theme-icon">◐</span><span id="theme-label">System</span></button>
   </header>
 
   <!-- content-area holds the HRD canvas, resize handle, and info panel side by side -->
@@ -45,6 +56,7 @@
           <div class="dgt">Main Sequence (ZAMS only)</div>
           <div class="dr"><span class="dl">Mass M / M☉</span><span class="dv" id="v-mass">—</span></div>
           <div class="dr"><span class="dl">MS lifetime</span><span class="dv" id="v-life">—</span></div>
+          <div class="dr"><span class="dl">Estimated age</span><span class="dv" id="v-age">—</span></div>
         </div>
         <div class="dg">
           <div class="dgt">Diagram Layers</div>
@@ -88,6 +100,66 @@
     </button>
   </nav>
 </div>
+
+<!-- Understand overlay — explains the physics & formulas -->
+<div id="understand">
+  <div id="understand-head">
+    <span class="uh-title">Understand the Physics</span>
+    <button id="close-understand" aria-label="Close">×</button>
+  </div>
+  <div id="understand-body">
+    <section class="usec">
+      <h3>Reading the diagram</h3>
+      <p>The Hertzsprung–Russell diagram plots a star's luminosity against its surface temperature. By convention the temperature axis is <strong>inverted</strong> — hot, blue stars on the left, cool, red stars on the right. The vertical axis is luminosity on a logarithmic scale, log(L / L☉), spanning faint white dwarfs at the bottom to luminous supergiants at the top.</p>
+    </section>
+
+    <section class="usec">
+      <h3>Radius — Stefan–Boltzmann law</h3>
+      <p>A star radiates as a blackbody, so its luminosity is set by its surface area and temperature. Solving for the radius:</p>
+      <div class="formula">R / R☉ = √(L / L☉) · (T☉ / T_eff)²</div>
+      <p>with T☉ = 5778 K. This is why the radius isolines run diagonally: at fixed radius, a hotter star is more luminous. In log–log space the lines have a slope of <strong>+4</strong>, because L ∝ R² T_eff⁴.</p>
+    </section>
+
+    <section class="usec">
+      <h3>Peak wavelength — Wien's law</h3>
+      <p>The wavelength at which a blackbody emits most strongly depends only on temperature:</p>
+      <div class="formula">λ_max = 2.898 × 10⁶ / T_eff &nbsp;[nm]</div>
+      <p>Hot stars peak in the ultraviolet and appear blue; cool stars peak in the red and infrared. This drives the colour sequence shown by the dots and the optional colour background.</p>
+    </section>
+
+    <section class="usec">
+      <h3>Spectral class &amp; colour</h3>
+      <p>Stars are binned by temperature into the classes <strong>O B A F G K M</strong> (hottest to coolest). The colours used here follow a blackbody sequence that is monotonic from red through white to blue — a physical constraint, never an arbitrary palette.</p>
+    </section>
+
+    <section class="usec">
+      <h3>The Main Sequence &amp; mass</h3>
+      <p>Stars fusing hydrogen in their cores lie along the <strong>Zero-Age Main Sequence (ZAMS)</strong>, drawn here from Ekström et al. (2012). Along this band, mass increases monotonically with temperature and luminosity. Mass is shown <strong>only</strong> on the ZAMS, because off the main sequence a star's mass is not determined by its position (T_eff, L) alone.</p>
+    </section>
+
+    <section class="usec">
+      <h3>Main-sequence lifetime</h3>
+      <p>More massive stars are far more luminous and burn their fuel much faster. The time spent on the main sequence scales steeply with mass:</p>
+      <div class="formula">τ_MS ≈ 10¹⁰ · (M / M☉)⁻²·⁵ &nbsp;[yr]</div>
+      <p>A 10 M☉ star lives only a few million years; a 0.5 M☉ star outlives the present age of the Universe.</p>
+    </section>
+
+    <section class="usec">
+      <h3>Estimated age</h3>
+      <p>As a star burns core hydrogen it slowly brightens, drifting upward from the ZAMS line toward the Terminal-Age Main Sequence. We use that vertical offset to estimate how much of the main-sequence lifetime has elapsed:</p>
+      <div class="formula">age ≈ f · τ_MS,&nbsp; f = clamp( (logL − logL_ZAMS) / 0.55, 0, 1 )</div>
+      <p>This is a simplified teaching estimate, not an isochrone fit: a star exactly on the ZAMS reads as essentially age zero, one near the top of the band as near τ_MS. Age is reported only on the main sequence, where the model applies.</p>
+    </section>
+
+    <section class="usec">
+      <h3>Luminosity classes</h3>
+      <p>At a given temperature, more luminous stars are larger. The classes run from <strong>V</strong> (main-sequence dwarfs) through <strong>IV</strong> (subgiants), <strong>III</strong> (giants), and <strong>II–I</strong> (bright giants and supergiants), with <strong>VII</strong> for the compact, faint white dwarfs below the main sequence.</p>
+    </section>
+
+    <p class="ucredit">Built with the SAIL (Scientist-AI-Loop) methodology · <a href="https://arxiv.org/abs/2603.18145" target="_blank" rel="noopener">arXiv:2603.18145</a></p>
+  </div>
+</div>
+
 <div id="tooltip"></div>
 
 <script type="module" src="js/main.js"></script>

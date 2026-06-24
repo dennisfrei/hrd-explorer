@@ -1,9 +1,25 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
+  /* Dark theme (default) */
   --bg:#050508;--panel:#0b0b14;--border:rgba(140,160,220,0.1);
   --text:#8899bb;--dim:#445566;--hi:#ccd8ee;
+  --accent:rgba(140,160,220,1);
   --mono:'JetBrains Mono',monospace;--sans:'Space Grotesk',sans-serif;
   --panel-w:320px;--tab-h:52px;
+}
+
+/* Light theme — explicit, and as the system default on light OS */
+:root[data-theme="light"]{
+  --bg:#eef1f8;--panel:#f7f9fd;--border:rgba(40,60,110,0.16);
+  --text:#465a80;--dim:#8593ad;--hi:#1b2740;
+  --accent:rgba(48,86,170,1);
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme]){
+    --bg:#eef1f8;--panel:#f7f9fd;--border:rgba(40,60,110,0.16);
+    --text:#465a80;--dim:#8593ad;--hi:#1b2740;
+    --accent:rgba(48,86,170,1);
+  }
 }
 
 /* Use 100% height on html/body so the app shell can fill the real visible
@@ -18,7 +34,10 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 #header h1{font-size:12px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--hi);}
 .hsep{flex:1;}
 .hbtn{font-family:var(--sans);font-size:10px;letter-spacing:.08em;text-transform:uppercase;background:none;border:1px solid var(--border);color:var(--dim);padding:3px 9px;border-radius:2px;cursor:pointer;transition:all .15s;}
-.hbtn:hover,.hbtn.on{border-color:rgba(140,160,220,.4);color:var(--hi);background:rgba(140,160,220,.06);}
+.hbtn:hover,.hbtn.on{border-color:var(--accent);color:var(--hi);background:rgba(140,160,220,.08);}
+.hgroup{display:flex;gap:6px;}
+.theme-btn{display:flex;align-items:center;gap:5px;}
+#theme-icon{font-size:12px;line-height:1;}
 
 /* ── CONTENT AREA ── */
 #content-area{flex:1;min-height:0;display:flex;overflow:hidden;position:relative;}
@@ -193,4 +212,60 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
     /* Ensure it sits above the bottom sheet */
     position:relative;z-index:60;
   }
+
+  /* Tight header: shrink the mode buttons, drop the theme label */
+  #header{gap:7px;}
+  #header h1{font-size:10px;flex-shrink:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .hbtn{padding:3px 6px;font-size:9px;}
+  .hgroup{gap:4px;}
+  #theme-label{display:none;}
+}
+
+/* ══════════════════════════════════════════
+   UNDERSTAND OVERLAY — physics & formulas
+   ══════════════════════════════════════════ */
+#understand{
+  position:fixed;inset:0;z-index:200;
+  display:none;flex-direction:column;
+  background:var(--bg);
+}
+#understand.is-open{display:flex;}
+#understand-head{
+  flex-shrink:0;display:flex;align-items:center;justify-content:space-between;
+  height:46px;padding:0 18px;border-bottom:1px solid var(--border);
+  background:var(--panel);
+}
+.uh-title{font-size:12px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--hi);}
+#close-understand{
+  background:none;border:1px solid transparent;border-radius:2px;cursor:pointer;
+  color:var(--dim);font-size:18px;line-height:1;width:30px;height:30px;
+  display:flex;align-items:center;justify-content:center;font-family:var(--mono);transition:all .15s;
+}
+#close-understand:hover{color:var(--hi);border-color:var(--border);}
+#understand-body{
+  flex:1;overflow-y:auto;padding:28px 22px 60px;
+  max-width:760px;width:100%;margin:0 auto;
+  scrollbar-width:thin;scrollbar-color:var(--border) transparent;
+}
+.usec{margin-bottom:26px;}
+.usec h3{
+  font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--hi);margin-bottom:9px;padding-bottom:5px;border-bottom:1px solid var(--border);
+}
+.usec p{font-size:13px;line-height:1.65;color:var(--text);margin-bottom:8px;}
+.usec strong{color:var(--hi);font-weight:600;}
+.formula{
+  font-family:var(--mono);font-size:13px;color:var(--hi);
+  background:rgba(140,160,220,.07);border:1px solid var(--border);border-radius:3px;
+  padding:11px 14px;margin:10px 0;letter-spacing:.02em;overflow-x:auto;white-space:nowrap;
+}
+.ucredit{font-size:11px;color:var(--dim);margin-top:30px;padding-top:14px;border-top:1px solid var(--border);}
+.ucredit a{color:var(--accent);text-decoration:none;}
+.ucredit a:hover{text-decoration:underline;}
+
+@media (max-width:639px){
+  #understand-head{height:40px;padding:0 14px;}
+  #understand-body{padding:20px 16px 50px;}
+  .usec p{font-size:12.5px;}
+  .formula{font-size:12px;padding:9px 11px;}
 }

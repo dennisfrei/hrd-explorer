@@ -4,11 +4,24 @@ An interactive Hertzsprung-Russell Diagram. Developed using the **SAIL** (Scient
 
 ## What it does
 
-- Click or drag anywhere in the HRD to read off T_eff, L, R, spectral class, and λ_max
+- Click or drag anywhere in the HRD to read off T_eff, L, R, spectral class, λ_max, and (on the main sequence) mass, MS lifetime, and an estimated age
 - Select from 25 curated real stars (SIMBAD / Hipparcos / Gaia DR3)
 - **Compare mode**: size-compare any two stars side by side with three radius scales (log, real, normalized)
+- **Understand mode**: an in-app explainer of the governing physics and formulas
 - Toggle diagram layers: R isolines, ZAMS, region labels, known-star dots, colour background
+- **Light / dark / system** themes (persisted), applied to both the DOM and the diagram canvas
+- **Installable PWA** — works fully offline once loaded (service worker + manifest)
 - Fully responsive — desktop sidebar, tablet overlay card, mobile bottom sheet + two-tab layout
+
+### Estimated age — a teaching approximation
+
+Age is reported only on the main sequence. It maps the vertical offset above the
+ZAMS onto the consumed fraction of the MS lifetime:
+`age ≈ f · τ_MS`, with `f = clamp((logL − logL_ZAMS) / 0.55, 0, 1)`.
+This is a deliberately simple positional estimate (a star on the ZAMS reads as
+age ≈ 0, one near the top of the band as ≈ τ_MS) — **not** an isochrone fit, so
+e.g. the Sun reads ~1.8 Gyr rather than its true 4.6 Gyr. See `estAge()` in
+`js/physics.js` to refine the model.
 
 ## Run locally
 
