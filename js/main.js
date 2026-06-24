@@ -10,6 +10,7 @@ import { drawPreview } from './preview-renderer.js';
 import { updatePanel, buildListIn, updateListSel } from './ui.js';
 import { attachHandlers } from './interaction.js';
 import { initTheme, applyTheme, getPref } from './theme.js';
+import { initUnderstand } from './understand.js';
 
 // ── Canvas refs ──
 const hc = document.getElementById('hrd-canvas'), hx = hc.getContext('2d');
@@ -44,7 +45,12 @@ function drawSelection() {
 function openPanel() {
   if (state.panelOpen) return;
   state.panelOpen = true;
-  document.getElementById('rpanel').classList.add('is-open');
+  const p = document.getElementById('rpanel');
+  // Start from the default CSS height each time it opens (a prior sheet-drag
+  // may have left an inline height on it).
+  p.style.height = '';
+  p.style.transform = '';
+  p.classList.add('is-open');
   // Drag handle only visible on desktop
   if (!isMobile() && !isTablet()) {
     document.getElementById('drag-handle').classList.add('is-open');
@@ -56,7 +62,11 @@ function openPanel() {
 function closePanel() {
   if (!state.panelOpen) return;
   state.panelOpen = false;
-  document.getElementById('rpanel').classList.remove('is-open');
+  const p = document.getElementById('rpanel');
+  p.classList.remove('is-open');
+  // Drop any inline sizing left by a mobile sheet-drag so the CSS state wins.
+  p.style.height = '';
+  p.style.transform = '';
   document.getElementById('drag-handle').classList.remove('is-open');
   if (!isMobile() && !isTablet()) resize();
 }
@@ -133,6 +143,47 @@ window.addEventListener('mouseup', () => {
   dragHandle.classList.remove('dragging');
 });
 
+// ── Mobile bottom-sheet drag (resize up, fling down to dismiss) ──
+const sheetGrip = document.getElementById('sheet-grip');
+let sheetDrag = null;
+sheetGrip.addEventListener('touchstart', e => {
+  if (!isMobile()) return;
+  const rpanelEl = document.getElementById('rpanel');
+  sheetDrag = { startY: e.touches[0].clientY, startH: rpanelEl.getBoundingClientRect().height, dismiss: 0 };
+  rpanelEl.classList.add('sheet-dragging');
+}, { passive: true });
+sheetGrip.addEventListener('touchmove', e => {
+  if (!sheetDrag) return;
+  e.preventDefault();
+  const rpanelEl = document.getElementById('rpanel');
+  const dy = e.touches[0].clientY - sheetDrag.startY; // down = positive
+  const minH = 120, maxH = Math.round(window.innerHeight * 0.9);
+  let h = Math.min(maxH, sheetDrag.startH - dy);
+  if (h < minH) {
+    // Past the minimum height: translate the whole sheet down toward dismissal.
+    sheetDrag.dismiss = minH - h;
+    rpanelEl.style.height = minH + 'px';
+    rpanelEl.style.transform = `translateY(${sheetDrag.dismiss}px)`;
+  } else {
+    sheetDrag.dismiss = 0;
+    rpanelEl.style.height = h + 'px';
+    rpanelEl.style.transform = 'translateY(0)';
+  }
+  resize();
+}, { passive: false });
+function endSheetDrag() {
+  if (!sheetDrag) return;
+  const rpanelEl = document.getElementById('rpanel');
+  rpanelEl.classList.remove('sheet-dragging');
+  const dismiss = sheetDrag.dismiss;
+  sheetDrag = null;
+  if (dismiss > 70) { closePanel(); return; }
+  rpanelEl.style.transform = 'translateY(0)';
+  if (state.panelOpen) requestAnimationFrame(drawSelection);
+}
+sheetGrip.addEventListener('touchend', endSheetDrag);
+sheetGrip.addEventListener('touchcancel', endSheetDrag);
+
 // ── Close button ──
 document.getElementById('close-panel').addEventListener('click', closePanel);
 
@@ -177,9 +228,13 @@ document.getElementById('tab-stars').addEventListener('click', () => goTab('star
 // ── Understand overlay ──
 const understandEl = document.getElementById('understand');
 const btnUnderstand = document.getElementById('btn-understand');
+const refreshUnderstand = initUnderstand();
 function setUnderstand(open) {
   understandEl.classList.toggle('is-open', open);
   btnUnderstand.classList.toggle('on', open);
+  // The widget canvas has zero width while the overlay is display:none, so its
+  // first real sizing has to happen once the overlay is visible.
+  if (open) requestAnimationFrame(refreshUnderstand);
 }
 btnUnderstand.addEventListener('click', () => setUnderstand(!understandEl.classList.contains('is-open')));
 document.getElementById('close-understand').addEventListener('click', () => setUnderstand(false));

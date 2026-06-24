@@ -13,6 +13,24 @@ import { THEME } from './theme.js';
 
 const ink = (a) => `rgba(${THEME.ink},${a})`;
 
+// Draw a label with subscript segments, centred on cx at baseline y.
+// parts: [{ s }, { s, sub:true }, …]. Lets canvas axes use real math
+// typography (T with a lowered "eff", L with a lowered ⊙) that MathML gives
+// the DOM but the 2D context cannot.
+function mathLabel(hx, cx, y, parts, baseFont, subFont) {
+  let w = 0;
+  parts.forEach(p => { hx.font = p.sub ? subFont : baseFont; w += hx.measureText(p.s).width; });
+  const prevAlign = hx.textAlign;
+  hx.textAlign = 'left';
+  let x = cx - w / 2;
+  parts.forEach(p => {
+    hx.font = p.sub ? subFont : baseFont;
+    hx.fillText(p.s, x, p.sub ? y + 2 : y);
+    x += hx.measureText(p.s).width;
+  });
+  hx.textAlign = prevAlign;
+}
+
 export function drawHRD(hx, R, state) {
   const W = hx.canvas.width, H = hx.canvas.height;
   hx.clearRect(0, 0, W, H);
@@ -116,10 +134,14 @@ function drawAxes(hx, R) {
     hx.fillText(t >= 1000 ? (t / 1000).toFixed(0) + 'k' : t, tx(t), R.y + R.h + 15);
   });
   hx.save(); hx.translate(16, R.y + R.h / 2); hx.rotate(-Math.PI / 2);
-  hx.font = '10px Space Grotesk,sans-serif'; hx.fillStyle = ink(THEME.isLight ? 0.6 : 0.42);
-  hx.textAlign = 'center'; hx.fillText('log(L / L☉)', 0, 0); hx.restore();
-  hx.textAlign = 'center'; hx.fillStyle = ink(THEME.isLight ? 0.55 : 0.35); hx.font = '9px Space Grotesk,sans-serif';
-  hx.fillText('T_eff [K]  —  hotter ←', R.x + R.w / 2, R.y + R.h + 30);
+  hx.fillStyle = ink(THEME.isLight ? 0.6 : 0.42);
+  mathLabel(hx, 0, 0, [{ s: 'log (L/L' }, { s: '⊙', sub: true }, { s: ')' }],
+    '10px Space Grotesk,sans-serif', '8px Space Grotesk,sans-serif');
+  hx.restore();
+  hx.fillStyle = ink(THEME.isLight ? 0.55 : 0.35);
+  mathLabel(hx, R.x + R.w / 2, R.y + R.h + 30,
+    [{ s: 'T' }, { s: 'eff', sub: true }, { s: ' [K]  —  hotter ←' }],
+    '9px Space Grotesk,sans-serif', '7px Space Grotesk,sans-serif');
 }
 
 function drawDots(hx, R, state) {

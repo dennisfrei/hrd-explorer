@@ -7,7 +7,7 @@ An interactive Hertzsprung-Russell Diagram. Developed using the **SAIL** (Scient
 - Click or drag anywhere in the HRD to read off T_eff, L, R, spectral class, λ_max, and (on the main sequence) mass, MS lifetime, and an estimated age
 - Select from 25 curated real stars (SIMBAD / Hipparcos / Gaia DR3)
 - **Compare mode**: size-compare any two stars side by side with three radius scales (log, real, normalized)
-- **Understand mode**: an in-app explainer of the governing physics and formulas
+- **Understand mode**: an in-app explainer of the governing physics, with formulas typeset in MathML and an interactive slider widget — drag T_eff and L and watch the radius, λ_max, colour, spectral class, mass and age update on a live star disk and Planck spectrum
 - Toggle diagram layers: R isolines, ZAMS, region labels, known-star dots, colour background
 - **Light / dark / system** themes (persisted), applied to both the DOM and the diagram canvas
 - **Installable PWA** — works fully offline once loaded (service worker + manifest)

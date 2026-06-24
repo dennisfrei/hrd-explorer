@@ -33,6 +33,7 @@
     <div id="hrd-wrap"><canvas id="hrd-canvas"></canvas></div>
     <div id="drag-handle"></div>
     <div id="rpanel">
+      <div id="sheet-grip" aria-hidden="true"></div>
       <button id="close-panel" aria-label="Close">×</button>
       <div id="star-preview">
         <canvas id="star-canvas"></canvas>
@@ -47,14 +48,14 @@
         </div>
         <div class="dg">
           <div class="dgt">Physical Parameters</div>
-          <div class="dr"><span class="dl">T_eff</span><span class="dv" id="v-teff">—</span></div>
-          <div class="dr"><span class="dl">log(L / L☉)</span><span class="dv" id="v-logl">—</span></div>
-          <div class="dr"><span class="dl">Radius R / R☉</span><span class="dv" id="v-rad">—</span></div>
-          <div class="dr"><span class="dl">λ_max</span><span class="dv" id="v-lmax">—</span></div>
+          <div class="dr"><span class="dl"><i>T</i><sub>eff</sub></span><span class="dv" id="v-teff">—</span></div>
+          <div class="dr"><span class="dl">log(<i>L</i> / <i>L</i><sub>⊙</sub>)</span><span class="dv" id="v-logl">—</span></div>
+          <div class="dr"><span class="dl">Radius <i>R</i> / <i>R</i><sub>⊙</sub></span><span class="dv" id="v-rad">—</span></div>
+          <div class="dr"><span class="dl"><i>λ</i><sub>max</sub></span><span class="dv" id="v-lmax">—</span></div>
         </div>
         <div class="dg">
           <div class="dgt">Main Sequence (ZAMS only)</div>
-          <div class="dr"><span class="dl">Mass M / M☉</span><span class="dv" id="v-mass">—</span></div>
+          <div class="dr"><span class="dl">Mass <i>M</i> / <i>M</i><sub>⊙</sub></span><span class="dv" id="v-mass">—</span></div>
           <div class="dr"><span class="dl">MS lifetime</span><span class="dv" id="v-life">—</span></div>
           <div class="dr"><span class="dl">Estimated age</span><span class="dv" id="v-age">—</span></div>
         </div>
@@ -114,16 +115,52 @@
     </section>
 
     <section class="usec">
+      <h3>Interactive — how the parameters connect</h3>
+      <p>Drag the two sliders. They set the only independent quantities — surface temperature and luminosity, the diagram's own axes — and everything else follows: the radius from Stefan–Boltzmann, the peak wavelength and colour from Wien's law, the spectral class, and (on the main sequence) the mass and age.</p>
+      <div id="u-playground">
+        <div class="u-controls">
+          <label class="u-slider">
+            <span class="u-slabel"><span class="u-pname"><i>T</i><sub>eff</sub></span><em id="u-teff-val">5,778 K</em></span>
+            <input type="range" id="u-teff" min="3.398" max="4.708" step="0.004" value="3.7617">
+          </label>
+          <label class="u-slider">
+            <span class="u-slabel"><span class="u-pname">log(<i>L</i>/<i>L</i><sub>⊙</sub>)</span><em id="u-logl-val">0.00</em></span>
+            <input type="range" id="u-logl" min="-2" max="6" step="0.02" value="0">
+          </label>
+        </div>
+        <div id="u-canvas-wrap"><canvas id="u-canvas"></canvas></div>
+        <div class="u-readouts">
+          <div class="u-ro"><span>Radius</span><b id="u-r">1.00 R☉</b></div>
+          <div class="u-ro"><span><i>λ</i><sub>max</sub></span><b id="u-lmax">502 nm</b></div>
+          <div class="u-ro"><span>Spectral</span><b id="u-spec">G</b></div>
+          <div class="u-ro"><span>Lum. class</span><b id="u-lum">V · Main Sequence</b></div>
+          <div class="u-ro"><span>Mass</span><b id="u-mass">1.00 M☉</b></div>
+          <div class="u-ro"><span>Est. age</span><b id="u-age">—</b></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="usec">
       <h3>Radius — Stefan–Boltzmann law</h3>
       <p>A star radiates as a blackbody, so its luminosity is set by its surface area and temperature. Solving for the radius:</p>
-      <div class="formula">R / R☉ = √(L / L☉) · (T☉ / T_eff)²</div>
+      <div class="formula"><math display="block">
+        <mfrac><mi>R</mi><msub><mi>R</mi><mo>⊙</mo></msub></mfrac>
+        <mo>=</mo>
+        <msqrt><mfrac><mi>L</mi><msub><mi>L</mi><mo>⊙</mo></msub></mfrac></msqrt>
+        <mo>·</mo>
+        <msup><mrow><mo>(</mo><mfrac><msub><mi>T</mi><mo>⊙</mo></msub><msub><mi>T</mi><mtext>eff</mtext></msub></mfrac><mo>)</mo></mrow><mn>2</mn></msup>
+      </math></div>
       <p>with T☉ = 5778 K. This is why the radius isolines run diagonally: at fixed radius, a hotter star is more luminous. In log–log space the lines have a slope of <strong>+4</strong>, because L ∝ R² T_eff⁴.</p>
     </section>
 
     <section class="usec">
       <h3>Peak wavelength — Wien's law</h3>
       <p>The wavelength at which a blackbody emits most strongly depends only on temperature:</p>
-      <div class="formula">λ_max = 2.898 × 10⁶ / T_eff &nbsp;[nm]</div>
+      <div class="formula"><math display="block">
+        <msub><mi>λ</mi><mtext>max</mtext></msub><mo>=</mo>
+        <mfrac><mrow><mn>2.898</mn><mo>×</mo><msup><mn>10</mn><mn>6</mn></msup></mrow><msub><mi>T</mi><mtext>eff</mtext></msub></mfrac>
+        <mspace width="8px"/><mtext>nm</mtext>
+      </math></div>
       <p>Hot stars peak in the ultraviolet and appear blue; cool stars peak in the red and infrared. This drives the colour sequence shown by the dots and the optional colour background.</p>
     </section>
 
@@ -140,14 +177,25 @@
     <section class="usec">
       <h3>Main-sequence lifetime</h3>
       <p>More massive stars are far more luminous and burn their fuel much faster. The time spent on the main sequence scales steeply with mass:</p>
-      <div class="formula">τ_MS ≈ 10¹⁰ · (M / M☉)⁻²·⁵ &nbsp;[yr]</div>
+      <div class="formula"><math display="block">
+        <msub><mi>τ</mi><mtext>MS</mtext></msub><mo>≈</mo>
+        <msup><mn>10</mn><mn>10</mn></msup><mo>·</mo>
+        <msup><mrow><mo>(</mo><mfrac><mi>M</mi><msub><mi>M</mi><mo>⊙</mo></msub></mfrac><mo>)</mo></mrow><mrow><mo>−</mo><mn>2.5</mn></mrow></msup>
+        <mspace width="8px"/><mtext>yr</mtext>
+      </math></div>
       <p>A 10 M☉ star lives only a few million years; a 0.5 M☉ star outlives the present age of the Universe.</p>
     </section>
 
     <section class="usec">
       <h3>Estimated age</h3>
       <p>As a star burns core hydrogen it slowly brightens, drifting upward from the ZAMS line toward the Terminal-Age Main Sequence. We use that vertical offset to estimate how much of the main-sequence lifetime has elapsed:</p>
-      <div class="formula">age ≈ f · τ_MS,&nbsp; f = clamp( (logL − logL_ZAMS) / 0.55, 0, 1 )</div>
+      <div class="formula"><math display="block">
+        <mtext>age</mtext><mo>≈</mo><mi>f</mi><mo>·</mo><msub><mi>τ</mi><mtext>MS</mtext></msub>
+        <mo>,</mo><mspace width="12px"/>
+        <mi>f</mi><mo>=</mo><mi>clamp</mi><mo>(</mo>
+        <mfrac><mrow><mi>logL</mi><mo>−</mo><msub><mi>logL</mi><mtext>ZAMS</mtext></msub></mrow><mn>0.55</mn></mfrac>
+        <mo>,</mo><mn>0</mn><mo>,</mo><mn>1</mn><mo>)</mo>
+      </math></div>
       <p>This is a simplified teaching estimate, not an isochrone fit: a star exactly on the ZAMS reads as essentially age zero, one near the top of the band as near τ_MS. Age is reported only on the main sequence, where the model applies.</p>
     </section>
 
