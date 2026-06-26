@@ -51,8 +51,11 @@ export function buildListIn(containerId, onPick) {
   const c = document.getElementById(containerId);
   if (!c) return;
   c.innerHTML = '';
-  STARS.forEach(s => {
-    const div = document.createElement('div'); div.className = 'si'; div.dataset.name = s.name; div.dataset.spec = s.spec;
+  STARS.forEach((s, i) => {
+    const div = document.createElement('div'); div.className = 'si';
+    div.dataset.name = s.name; div.dataset.spec = s.spec;
+    div.dataset.teff = s.teff; div.dataset.logl = s.logL;
+    div.dataset.dist = s.dist ?? ''; div.dataset.idx = i;
     const dot = document.createElement('div'); dot.className = 'sdot';
     dot.style.background = tc(s.teff); dot.style.boxShadow = `0 0 4px ${tc(s.teff, .55)}`;
     const nm = document.createElement('span'); nm.className = 'sn'; nm.textContent = s.name;
@@ -74,6 +77,28 @@ export function filterList(containerId, query) {
     const spec = (el.dataset.spec || '').toLowerCase();
     el.style.display = !q || name.includes(q) || spec.includes(q) ? '' : 'none';
   });
+}
+
+// Reorder the rendered star rows in place by one of the main properties.
+// Hidden (filtered-out) rows are reordered too — they stay hidden.
+export function sortList(containerId, key) {
+  const c = document.getElementById(containerId);
+  if (!c) return;
+  const num = (el, a) => parseFloat(el.dataset[a]);
+  const byDist = (a, b) => {
+    const da = num(a, 'dist'), db = num(b, 'dist');
+    if (isNaN(da) && isNaN(db)) return 0; // both distance-less → keep order
+    if (isNaN(da)) return 1; if (isNaN(db)) return -1; // distance-less last
+    return da - db;
+  };
+  const cmp = {
+    default: (a, b) => num(a, 'idx') - num(b, 'idx'),
+    name: (a, b) => a.dataset.name.localeCompare(b.dataset.name),
+    teff: (a, b) => num(b, 'teff') - num(a, 'teff'),   // hot → cool
+    logl: (a, b) => num(b, 'logl') - num(a, 'logl'),   // bright → faint
+    dist: byDist,                                       // near → far
+  }[key] || (() => 0);
+  [...c.querySelectorAll('.si')].sort(cmp).forEach(r => c.appendChild(r));
 }
 
 export function updateListSel(selName, cmpName) {

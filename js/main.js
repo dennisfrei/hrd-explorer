@@ -7,7 +7,7 @@ import { STARS } from './stars.js';
 import { R, setR, TMIN, TMAX, LMIN, LMAX } from './coords.js';
 import { drawHRD } from './hrd-renderer.js';
 import { drawPreview } from './preview-renderer.js';
-import { updatePanel, buildListIn, updateListSel, filterList } from './ui.js';
+import { updatePanel, buildListIn, updateListSel, filterList, sortList } from './ui.js';
 import { attachHandlers } from './interaction.js';
 import { initTheme, applyTheme, getPref } from './theme.js';
 import { initUnderstand } from './understand.js';
@@ -61,6 +61,7 @@ function openPanel() {
     document.getElementById('drag-handle').classList.add('is-open');
     resize();
   }
+  updateTabBar();
   requestAnimationFrame(drawSelection);
 }
 
@@ -74,6 +75,7 @@ function closePanel() {
   p.style.transform = '';
   document.getElementById('drag-handle').classList.remove('is-open');
   if (!isMobile() && !isTablet()) resize();
+  updateTabBar();
 }
 
 // ── Selection ──
@@ -96,17 +98,39 @@ function pick(obj) {
   writeHash(state);
 }
 
-// ── Mobile tab switching (Diagram | Stars only) ──
+// ── Mobile tab switching (Diagram | Details | Stars | Understand) ──
+function setTabOn(id, on) { const e = document.getElementById(id); if (e) e.classList.toggle('on', on); }
+// Reflect the current view in the bottom tab bar. Details and Diagram share the
+// same pane (the detail sheet overlays the diagram), so Details lights up
+// whenever the panel is open; Understand wins while its overlay is up.
+function updateTabBar() {
+  if (!isMobile()) return;
+  const understandOpen = understandEl.classList.contains('is-open');
+  const onStars = state.activeTab === 'stars';
+  const onDetails = !onStars && state.panelOpen;
+  setTabOn('tab-diagram', !understandOpen && !onStars && !onDetails);
+  setTabOn('tab-details', !understandOpen && onDetails);
+  setTabOn('tab-stars', !understandOpen && onStars);
+  setTabOn('tab-understand', understandOpen);
+}
 function goTab(tab) {
   if (!isMobile()) return;
+  // Details isn't a separate pane — it reopens the detail sheet over the diagram.
+  if (tab === 'details') {
+    state.activeTab = 'diagram';
+    document.getElementById('content-area').classList.remove('tab-hidden');
+    document.getElementById('slist-wrap').classList.remove('is-active');
+    openPanel();
+    requestAnimationFrame(resize);
+    updateTabBar();
+    return;
+  }
   state.activeTab = tab;
   const diagActive = tab === 'diagram';
-  // Show/hide content-area (HRD) vs stars pane
   document.getElementById('content-area').classList.toggle('tab-hidden', !diagActive);
   document.getElementById('slist-wrap').classList.toggle('is-active', !diagActive);
-  document.getElementById('tab-diagram').classList.toggle('on', diagActive);
-  document.getElementById('tab-stars').classList.toggle('on', !diagActive);
   if (diagActive) requestAnimationFrame(resize);
+  updateTabBar();
 }
 
 // ── Resize ──
@@ -292,9 +316,11 @@ yaxisToggle.addEventListener('click', () => {
   writeHash(state);
 });
 
-// ── Star list filter ──
+// ── Star list filter & sort ──
 document.getElementById('sfilter-desktop').addEventListener('input', e => filterList('slist-items-desktop', e.target.value));
 document.getElementById('sfilter-mobile').addEventListener('input', e => filterList('slist-items-mobile', e.target.value));
+document.getElementById('ssort-desktop').addEventListener('change', e => sortList('slist-items-desktop', e.target.value));
+document.getElementById('ssort-mobile').addEventListener('change', e => sortList('slist-items-mobile', e.target.value));
 
 // ── Share & export ──
 document.getElementById('btn-export').addEventListener('click', () => {
@@ -341,7 +367,9 @@ scaleBtn.addEventListener('click', () => {
 
 // ── Mobile tab bar ──
 document.getElementById('tab-diagram').addEventListener('click', () => goTab('diagram'));
+document.getElementById('tab-details').addEventListener('click', () => goTab('details'));
 document.getElementById('tab-stars').addEventListener('click', () => goTab('stars'));
+document.getElementById('tab-understand').addEventListener('click', () => setUnderstand(!understandEl.classList.contains('is-open')));
 
 // ── Understand overlay ──
 const understandEl = document.getElementById('understand');
@@ -350,6 +378,7 @@ const refreshUnderstand = initUnderstand();
 function setUnderstand(open) {
   understandEl.classList.toggle('is-open', open);
   btnUnderstand.classList.toggle('on', open);
+  updateTabBar();
   // The widget canvas has zero width while the overlay is display:none, so its
   // first real sizing has to happen once the overlay is visible.
   if (open) requestAnimationFrame(refreshUnderstand);

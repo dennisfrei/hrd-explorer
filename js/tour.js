@@ -41,17 +41,26 @@ export function initTour(steps, { onStep } = {}) {
     return r.width > 0 && r.height > 0 ? t : null;
   }
 
+  function rectOnScreen(r) {
+    return r.bottom > 4 && r.top < window.innerHeight - 4 &&
+           r.right > 4 && r.left < window.innerWidth - 4;
+  }
+
   function place() {
     const step = order[idx];
     const t = visible(step.sel);
     document.body.classList.add('tour-on');
     if (onStep) onStep(step);
-    if (!t) {
-      // No anchor: centre the card with no spotlight.
+    // Bring panel-internal targets (e.g. controls inside the mobile bottom
+    // sheet) into view before measuring.
+    if (t) { try { t.scrollIntoView({ block: 'center', inline: 'nearest' }); } catch (e) { /* ignore */ } }
+    const r = t ? t.getBoundingClientRect() : null;
+    if (!t || !rectOnScreen(r)) {
+      // No usable on-screen anchor: dim uniformly and centre the card, so it is
+      // always visible and the tour stays exitable.
       spot.style.opacity = '0';
       centreCard();
     } else {
-      const r = t.getBoundingClientRect();
       const pad = 6;
       spot.style.opacity = '1';
       spot.style.left = (r.left - pad) + 'px';
@@ -77,9 +86,11 @@ export function initTour(steps, { onStep } = {}) {
     card.style.transform = 'none';
     const cw = Math.min(300, window.innerWidth - 24);
     card.style.width = cw + 'px';
-    const ch = card.offsetHeight || 150;
+    const ch = card.offsetHeight || 160;
     let top = r.bottom + 12;
-    if (top + ch > window.innerHeight - 12) top = Math.max(12, r.top - ch - 12);
+    if (top + ch > window.innerHeight - 12) top = r.top - ch - 12;
+    // Always keep the whole card on-screen so Skip/Next stay reachable.
+    top = Math.max(12, Math.min(top, window.innerHeight - ch - 12));
     let left = r.left + r.width / 2 - cw / 2;
     left = Math.max(12, Math.min(left, window.innerWidth - cw - 12));
     card.style.left = left + 'px';

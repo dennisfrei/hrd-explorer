@@ -153,6 +153,13 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 }
 .sfilter:focus{border-color:var(--accent);}
 .sfilter::placeholder{color:var(--dim);}
+.ssort{
+  width:calc(100% - 20px);margin:0 10px 8px;padding:5px 9px;
+  font-family:var(--sans);font-size:11px;color:var(--hi);
+  background:rgba(140,160,220,.06);border:1px solid var(--border);border-radius:3px;
+  outline:none;cursor:pointer;
+}
+.ssort:focus{border-color:var(--accent);}
 .si{display:flex;align-items:center;gap:7px;padding:4px 14px;cursor:pointer;transition:background .1s;border-bottom:1px solid rgba(140,160,220,.03);}
 .si:hover,.si:active{background:rgba(140,160,220,.05);}
 .si.sel{background:rgba(140,160,220,.08);}
@@ -173,7 +180,7 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 /* ── TAB BAR ── */
 /* Hidden by default; shown only on mobile */
 #tab-bar{display:none;}
-.tab-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:none;border:none;cursor:pointer;color:var(--dim);font-family:var(--sans);font-size:9px;letter-spacing:.08em;text-transform:uppercase;transition:color .15s;-webkit-tap-highlight-color:transparent;}
+.tab-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:none;border:none;cursor:pointer;color:var(--dim);font-family:var(--sans);font-size:9px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;transition:color .15s;-webkit-tap-highlight-color:transparent;}
 .tab-btn svg{opacity:.45;transition:opacity .15s;}
 .tab-btn.on{color:var(--hi);}
 .tab-btn.on svg{opacity:1;}
@@ -276,6 +283,8 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
   .hbtn{padding:3px 6px;font-size:9px;}
   .hgroup{gap:4px;}
   #theme-label{display:none;}
+  /* Understand lives in the bottom tab bar on mobile */
+  #btn-understand{display:none;}
 }
 
 /* ══════════════════════════════════════════

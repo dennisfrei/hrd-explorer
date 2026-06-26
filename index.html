@@ -101,6 +101,13 @@
       <div id="slist">
         <div class="slt">Known Stars</div>
         <input type="search" class="sfilter" id="sfilter-desktop" placeholder="Filter stars…" aria-label="Filter stars">
+        <select class="ssort" id="ssort-desktop" aria-label="Sort stars">
+          <option value="default">Sort: catalogue order</option>
+          <option value="name">Sort: name (A–Z)</option>
+          <option value="teff">Sort: temperature (hot→cool)</option>
+          <option value="logl">Sort: luminosity (bright→faint)</option>
+          <option value="dist">Sort: distance (near→far)</option>
+        </select>
         <div id="slist-items-desktop"></div>
       </div>
     </div>
@@ -110,10 +117,17 @@
   <div id="slist-wrap">
     <div class="slt">Known Stars</div>
     <input type="search" class="sfilter" id="sfilter-mobile" placeholder="Filter stars…" aria-label="Filter stars">
+    <select class="ssort" id="ssort-mobile" aria-label="Sort stars">
+      <option value="default">Sort: catalogue order</option>
+      <option value="name">Sort: name (A–Z)</option>
+      <option value="teff">Sort: temperature (hot→cool)</option>
+      <option value="logl">Sort: luminosity (bright→faint)</option>
+      <option value="dist">Sort: distance (near→far)</option>
+    </select>
     <div id="slist-items-mobile"></div>
   </div>
 
-  <!-- Tab bar — mobile only, 2 tabs -->
+  <!-- Tab bar — mobile only -->
   <nav id="tab-bar">
     <button class="tab-btn on" id="tab-diagram" aria-label="Diagram">
       <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4">
@@ -122,11 +136,26 @@
       </svg>
       Diagram
     </button>
+    <button class="tab-btn" id="tab-details" aria-label="Details">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4">
+        <circle cx="9" cy="9" r="7"/>
+        <line x1="9" y1="8.2" x2="9" y2="13" stroke-linecap="round"/>
+        <circle cx="9" cy="5.3" r="0.7" fill="currentColor" stroke="none"/>
+      </svg>
+      Details
+    </button>
     <button class="tab-btn" id="tab-stars" aria-label="Stars">
       <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4">
         <polygon points="9,2.5 10.8,7.2 15.8,7.2 11.8,10.2 13.3,15 9,12.2 4.7,15 6.2,10.2 2.2,7.2 7.2,7.2" stroke-linejoin="round"/>
       </svg>
       Stars
+    </button>
+    <button class="tab-btn" id="tab-understand" aria-label="Understand">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4">
+        <path d="M9 4.6C7.5 3.5 5 3.3 3 3.7v9c2-0.4 4.5-0.2 6 0.9 1.5-1.1 4-1.3 6-0.9v-9c-2-0.4-4.5-0.2-6 0.9z" stroke-linejoin="round"/>
+        <line x1="9" y1="4.6" x2="9" y2="14.5"/>
+      </svg>
+      Understand
     </button>
   </nav>
 </div>
