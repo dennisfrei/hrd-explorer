@@ -2,15 +2,18 @@
 // MAIN — entry point, state owner, wiring
 // ═══════════════════════════════════
 
-import { calcR } from './physics.js';
+import { calcR, stype } from './physics.js';
 import { STARS } from './stars.js';
-import { R, setR } from './coords.js';
+import { R, setR, TMIN, TMAX, LMIN, LMAX } from './coords.js';
 import { drawHRD } from './hrd-renderer.js';
 import { drawPreview } from './preview-renderer.js';
-import { updatePanel, buildListIn, updateListSel } from './ui.js';
+import { updatePanel, buildListIn, updateListSel, filterList } from './ui.js';
 import { attachHandlers } from './interaction.js';
 import { initTheme, applyTheme, getPref } from './theme.js';
 import { initUnderstand } from './understand.js';
+import { exportPNG, parseHash, writeHash } from './share.js';
+import { pickTarget, scoreGuess } from './quiz.js';
+import { initTour } from './tour.js';
 
 // ── Canvas refs ──
 const hc = document.getElementById('hrd-canvas'), hx = hc.getContext('2d');
@@ -26,6 +29,8 @@ const state = {
   hover: null,
   activeTab: 'diagram', // mobile only: 'diagram' | 'stars'
   panelOpen: false,
+  quiz: null, // { active, target, guess, revealed, score, round }
+  yMode: 'lum', // y-axis quantity: 'lum' (log L/L☉) | 'appmag' (apparent m_bol)
 };
 
 const isMobile = () => window.innerWidth < 640;
@@ -38,7 +43,7 @@ function drawSelection() {
   if (!state.selStar) return;
   const B = state.cmpStar ? { teff: state.cmpStar.teff, R: calcR(state.cmpStar.logL, state.cmpStar.teff) } : null;
   drawPreview(sx, state.selStar.teff, state.selStar.logL, B, state.scaleMode);
-  updatePanel(state.selStar.teff, state.selStar.logL, state.selStar.name);
+  updatePanel(state.selStar.teff, state.selStar.logL, state.selStar.name, state.selStar.dist);
 }
 
 // ── Panel open / close ──
@@ -73,6 +78,8 @@ function closePanel() {
 
 // ── Selection ──
 function pick(obj) {
+  // In quiz mode a click is a guess, not a selection.
+  if (state.quiz && state.quiz.active) { handleGuess(obj.teff, obj.logL); return; }
   const isSecond = state.compareMode && state.selStar && !(obj.name && obj.name === state.selStar.name);
   if (isSecond) {
     state.cmpStar = obj;
@@ -86,6 +93,7 @@ function pick(obj) {
   drawSelection();
   updateListSel(state.selStar && state.selStar.name, state.cmpStar && state.cmpStar.name);
   drawDiagram();
+  writeHash(state);
 }
 
 // ── Mobile tab switching (Diagram | Stars only) ──
@@ -189,18 +197,25 @@ sheetGrip.addEventListener('touchcancel', endSheetDrag);
 document.getElementById('close-panel').addEventListener('click', closePanel);
 
 // ── Mode controls ──
-document.getElementById('btn-explore').addEventListener('click', () => {
+function setExplore() {
   state.compareMode = false; state.cmpStar = null;
   document.getElementById('btn-explore').classList.add('on');
   document.getElementById('btn-compare').classList.remove('on');
   document.getElementById('cmp-note').classList.remove('show');
-  drawSelection(); drawDiagram();
-});
-document.getElementById('btn-compare').addEventListener('click', () => {
+}
+function setCompare() {
   state.compareMode = true;
   document.getElementById('btn-compare').classList.add('on');
   document.getElementById('btn-explore').classList.remove('on');
   document.getElementById('cmp-note').classList.add('show');
+}
+document.getElementById('btn-explore').addEventListener('click', () => {
+  if (state.quiz) stopQuiz();
+  setExplore(); drawSelection(); drawDiagram(); writeHash(state);
+});
+document.getElementById('btn-compare').addEventListener('click', () => {
+  if (state.quiz) stopQuiz();
+  setCompare(); writeHash(state);
 });
 
 ['radius', 'zams', 'regions', 'stars', 'color'].forEach(k => {
@@ -208,8 +223,109 @@ document.getElementById('btn-compare').addEventListener('click', () => {
     state.layers[k] = !state.layers[k];
     document.getElementById(`l-${k}`).classList.toggle('on', state.layers[k]);
     drawDiagram();
+    writeHash(state);
   });
 });
+
+// ── Quiz mode ──
+const hrdWrap = document.getElementById('hrd-wrap');
+const quizPrompt = document.getElementById('quiz-prompt');
+const quizScore = document.getElementById('quiz-score');
+const quizNext = document.getElementById('quiz-next');
+const btnQuiz = document.getElementById('btn-quiz');
+
+function startQuiz() {
+  setExplore();
+  if (state.yMode !== 'lum') setYMode('lum'); // quiz is a luminosity-plane exercise
+  closePanel();
+  state.quiz = { active: true, target: null, guess: null, revealed: false, score: 0, round: 0 };
+  btnQuiz.classList.add('on');
+  hrdWrap.classList.add('quiz');
+  nextQuiz();
+}
+function stopQuiz() {
+  state.quiz = null;
+  btnQuiz.classList.remove('on');
+  hrdWrap.classList.remove('quiz');
+  drawDiagram();
+}
+function nextQuiz() {
+  const q = state.quiz; if (!q) return;
+  q.target = pickTarget(q.target);
+  q.guess = null; q.revealed = false; q.round++;
+  quizPrompt.innerHTML = `Find <b>${q.target.name}</b> · ${q.target.spec}`;
+  quizScore.textContent = `Score ${q.score} · Round ${q.round}`;
+  quizNext.hidden = true;
+  drawDiagram();
+}
+function handleGuess(teff, logL) {
+  const q = state.quiz; if (!q || q.revealed) return;
+  q.guess = { teff, logL };
+  q.revealed = true;
+  const { points, verdict } = scoreGuess(q.target, teff, logL);
+  q.score += points;
+  quizPrompt.innerHTML = `<b>${verdict}</b> · +${points} — that was <b>${q.target.name}</b> (${q.target.spec})`;
+  quizScore.textContent = `Score ${q.score} · Round ${q.round}`;
+  quizNext.hidden = false;
+  drawDiagram();
+}
+btnQuiz.addEventListener('click', () => { state.quiz ? stopQuiz() : startQuiz(); });
+quizNext.addEventListener('click', nextQuiz);
+document.getElementById('quiz-exit').addEventListener('click', stopQuiz);
+
+// ── Y-axis mode (luminosity ↔ apparent magnitude) ──
+const yaxisToggle = document.getElementById('yaxis-toggle');
+const YMODE_LABEL = { lum: 'y · log L', appmag: 'y · m (app)' };
+function setYMode(mode) {
+  state.yMode = mode;
+  yaxisToggle.textContent = YMODE_LABEL[mode];
+  yaxisToggle.classList.toggle('on', mode === 'appmag');
+  // The distance-dependent overlays have no place on the apparent-mag axis.
+  ['radius', 'zams', 'regions'].forEach(k =>
+    document.getElementById(`l-${k}`).classList.toggle('lbtn-na', mode === 'appmag'));
+  drawDiagram();
+  if (state.panelOpen) drawSelection();
+}
+yaxisToggle.addEventListener('click', () => {
+  if (state.quiz) stopQuiz();
+  setYMode(state.yMode === 'lum' ? 'appmag' : 'lum');
+  writeHash(state);
+});
+
+// ── Star list filter ──
+document.getElementById('sfilter-desktop').addEventListener('input', e => filterList('slist-items-desktop', e.target.value));
+document.getElementById('sfilter-mobile').addEventListener('input', e => filterList('slist-items-mobile', e.target.value));
+
+// ── Share & export ──
+document.getElementById('btn-export').addEventListener('click', () => {
+  exportPNG(hc, ex => drawHRD(ex, R, state), 'HR Diagram Explorer');
+});
+const btnCopy = document.getElementById('btn-copylink');
+btnCopy.addEventListener('click', async () => {
+  writeHash(state);
+  const restore = txt => { btnCopy.textContent = txt; setTimeout(() => (btnCopy.textContent = 'Copy link'), 1400); };
+  try { await navigator.clipboard.writeText(location.href); restore('Copied!'); }
+  catch { restore('Press ⌘/Ctrl C'); }
+});
+
+// ── Guided tour ──
+const tour = initTour([
+  { title: 'The HR diagram', sel: '#hrd-wrap',
+    text: 'Every point is a star — hot blue stars to the left, cool red ones to the right; luminous at the top, faint at the bottom. Click anywhere to read off its properties.' },
+  { title: 'Modes', sel: '.hgroup',
+    text: 'Explore reads off any point, Compare sizes two stars side by side, and Understand opens the physics explainer with interactive sliders.' },
+  { title: 'Quiz yourself', sel: '#btn-quiz',
+    text: 'Quiz mode names a star and asks you to place it on the diagram, then scores how close your guess was.' },
+  { title: 'Diagram layers', sel: '#l-radius',
+    text: 'Toggle the radius isolines, the ZAMS line, region labels, the known-star dots and a colour background.' },
+  { title: 'Find a star', sel: '.sfilter',
+    text: 'Filter the 25 curated stars by name or spectral type, then click one to jump to it.' },
+  { title: 'Share & export', sel: '#btn-export',
+    text: 'Copy a link that restores this exact view, or save the diagram as a PNG for slides and handouts.' },
+  { title: 'Theme', sel: '#theme-toggle',
+    text: 'Switch between light, dark, and following your system setting.' },
+]);
+document.getElementById('btn-tour').addEventListener('click', () => tour.start());
 
 const scaleBtn = document.getElementById('scale-toggle');
 const SCALE_MODES = ['log', 'real', 'norm'];
@@ -220,6 +336,7 @@ scaleBtn.addEventListener('click', () => {
   scaleBtn.textContent = SCALE_LABELS[state.scaleMode];
   scaleBtn.classList.toggle('on', state.scaleMode !== 'log');
   drawSelection();
+  writeHash(state);
 });
 
 // ── Mobile tab bar ──
@@ -239,7 +356,39 @@ function setUnderstand(open) {
 }
 btnUnderstand.addEventListener('click', () => setUnderstand(!understandEl.classList.contains('is-open')));
 document.getElementById('close-understand').addEventListener('click', () => setUnderstand(false));
-document.addEventListener('keydown', e => { if (e.key === 'Escape') setUnderstand(false); });
+
+// ── Keyboard ──
+// Escape steps back through the open layers; arrow keys nudge the selected
+// point around the diagram (Shift = coarser steps).
+const KEY_STEP_T = 0.02, KEY_STEP_L = 0.1; // dex per press
+const ARROWS = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (document.body.classList.contains('tour-on')) return; // tour owns Esc
+    if (understandEl.classList.contains('is-open')) setUnderstand(false);
+    else if (state.quiz) stopQuiz();
+    else if (state.panelOpen) closePanel();
+    return;
+  }
+  if (!ARROWS.includes(e.key)) return;
+  const tag = (e.target.tagName || '').toLowerCase();
+  if (tag === 'input' || tag === 'textarea') return;
+  if (understandEl.classList.contains('is-open') || document.body.classList.contains('tour-on')) return;
+  if (state.quiz && state.quiz.active) return;
+  if (state.yMode === 'appmag') return; // free points have no luminosity to nudge
+  if (!state.selStar) return;
+  e.preventDefault();
+  const mult = e.shiftKey ? 4 : 1;
+  let logT = Math.log10(state.selStar.teff), logL = state.selStar.logL;
+  if (e.key === 'ArrowLeft') logT += KEY_STEP_T * mult;   // hotter is to the left
+  if (e.key === 'ArrowRight') logT -= KEY_STEP_T * mult;
+  if (e.key === 'ArrowUp') logL += KEY_STEP_L * mult;
+  if (e.key === 'ArrowDown') logL -= KEY_STEP_L * mult;
+  logT = Math.max(Math.log10(TMIN), Math.min(Math.log10(TMAX), logT));
+  logL = Math.max(LMIN, Math.min(LMAX, logL));
+  const teff = Math.pow(10, logT);
+  pick({ teff, logL, name: null, spec: stype(teff) });
+});
 
 // Understand detail level: compact (default) | detailed (extra deep-dive sections)
 const understandBody = document.getElementById('understand-body');
@@ -285,8 +434,41 @@ window.addEventListener('resize', () => {
   resize();
 });
 
+// Restore an explorable view from the URL hash, or fall back to the Sun.
+function restoreFromHash() {
+  const h = parseHash();
+  if (!h) return false;
+  if (h.layers) {
+    Object.keys(state.layers).forEach(k => {
+      state.layers[k] = h.layers[k];
+      document.getElementById(`l-${k}`).classList.toggle('on', state.layers[k]);
+    });
+  }
+  if (h.compareMode) setCompare();
+  if (h.yMode === 'appmag') setYMode('appmag');
+  if (h.scaleMode && h.scaleMode !== 'log') {
+    state.scaleMode = h.scaleMode;
+    scaleBtn.textContent = SCALE_LABELS[state.scaleMode];
+    scaleBtn.classList.add('on');
+  }
+  const resolve = (name, point) => {
+    if (name) return STARS.find(s => s.name === name) || null;
+    if (point) { const [t, y] = point; return { teff: t, logL: y, name: null, spec: stype(t) }; }
+    return null;
+  };
+  const sel = resolve(h.selName, h.selPoint);
+  if (!sel) return false;
+  state.selStar = sel;
+  state.cmpStar = state.compareMode ? resolve(h.cmpName, h.cmpPoint) : null;
+  openPanel();
+  drawSelection();
+  updateListSel(sel.name, state.cmpStar && state.cmpStar.name);
+  drawDiagram();
+  return true;
+}
+
 resize();
-setTimeout(() => pick(STARS.find(s => s.name === 'Sun')), 80);
+setTimeout(() => { if (!restoreFromHash()) pick(STARS.find(s => s.name === 'Sun')); }, 80);
 
 // ── PWA service worker (skip on file://, where SW is unavailable) ──
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {

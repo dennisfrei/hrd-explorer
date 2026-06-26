@@ -15,6 +15,17 @@ export function calcR(logL, teff) {
 // Wien's displacement law (spec §2.4): λ_max [nm] = 2.898e6 / Teff[K]
 export function calcLmax(teff) { return 2.898e6 / teff; }
 
+// Absolute bolometric magnitude from luminosity (IAU 2015 zero point:
+// M_bol = 4.74 at L = L☉). Additive observational quantity — it follows
+// directly from logL and changes nothing about the plotted (Teff, L).
+export function absMagBol(logL) { return 4.74 - 2.5 * logL; }
+
+// Apparent bolometric magnitude given a distance in parsecs (distance modulus).
+export function appMagBol(logL, distPc) { return absMagBol(logL) + 5 * Math.log10(distPc / 10); }
+
+// Trigonometric parallax in milli-arcseconds from a distance in parsecs.
+export function parallaxMas(distPc) { return 1000 / distPc; }
+
 // MK spectral class from Teff (spec §2.5)
 export function stype(t) {
   if (t > 30000) return 'O'; if (t > 10000) return 'B'; if (t > 7500) return 'A';

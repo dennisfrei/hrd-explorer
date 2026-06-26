@@ -4,11 +4,12 @@
 // DOM-facing only. Renderers are not imported here; state is never read
 // directly — callers pass in values and callbacks.
 
-import { calcR, calcLmax, stype, lumClass, onZAMS, massOnZAMS, msLife, estAge, tc } from './physics.js';
-import { fmtR, fmtLife } from './format.js';
+import { calcR, calcLmax, stype, lumClass, onZAMS, massOnZAMS, msLife, estAge,
+  absMagBol, appMagBol, parallaxMas, tc } from './physics.js';
+import { fmtR, fmtLife, fmtDist, fmtMag, fmtPlx } from './format.js';
 import { STARS } from './stars.js';
 
-export function updatePanel(teff, logL, name) {
+export function updatePanel(teff, logL, name, dist) {
   const Rv = calcR(logL, teff);
   document.getElementById('v-teff').textContent = Math.round(teff).toLocaleString() + ' K';
   document.getElementById('v-logl').textContent = logL.toFixed(2);
@@ -16,6 +17,19 @@ export function updatePanel(teff, logL, name) {
   document.getElementById('v-lmax').textContent = Math.round(calcLmax(teff)) + ' nm';
   document.getElementById('v-spec').textContent = stype(teff);
   document.getElementById('v-lum').textContent = lumClass(logL, teff);
+
+  // Observed — absolute bolometric magnitude always; the distance-dependent
+  // quantities only for curated stars that carry a catalogue distance.
+  document.getElementById('v-absmag').textContent = fmtMag(absMagBol(logL));
+  if (dist) {
+    document.getElementById('v-dist').textContent = fmtDist(dist);
+    document.getElementById('v-plx').textContent = fmtPlx(parallaxMas(dist));
+    document.getElementById('v-appmag').textContent = fmtMag(appMagBol(logL, dist));
+  } else {
+    document.getElementById('v-dist').textContent = '—';
+    document.getElementById('v-plx').textContent = '—';
+    document.getElementById('v-appmag').textContent = '—';
+  }
   if (onZAMS(logL, teff)) {
     const m = massOnZAMS(teff);
     document.getElementById('v-mass').textContent = m ? m.toFixed(2) + ' M☉' : '—';
@@ -38,7 +52,7 @@ export function buildListIn(containerId, onPick) {
   if (!c) return;
   c.innerHTML = '';
   STARS.forEach(s => {
-    const div = document.createElement('div'); div.className = 'si'; div.dataset.name = s.name;
+    const div = document.createElement('div'); div.className = 'si'; div.dataset.name = s.name; div.dataset.spec = s.spec;
     const dot = document.createElement('div'); dot.className = 'sdot';
     dot.style.background = tc(s.teff); dot.style.boxShadow = `0 0 4px ${tc(s.teff, .55)}`;
     const nm = document.createElement('span'); nm.className = 'sn'; nm.textContent = s.name;
@@ -46,6 +60,19 @@ export function buildListIn(containerId, onPick) {
     div.append(dot, nm, sp);
     div.addEventListener('click', () => onPick(s));
     c.appendChild(div);
+  });
+}
+
+// Filter the rendered star rows in a container by a free-text query matched
+// against the star name and spectral type. Empty query shows all.
+export function filterList(containerId, query) {
+  const c = document.getElementById(containerId);
+  if (!c) return;
+  const q = query.trim().toLowerCase();
+  c.querySelectorAll('.si').forEach(el => {
+    const name = (el.dataset.name || '').toLowerCase();
+    const spec = (el.dataset.spec || '').toLowerCase();
+    el.style.display = !q || name.includes(q) || spec.includes(q) ? '' : 'none';
   });
 }
 

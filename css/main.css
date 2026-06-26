@@ -36,6 +36,7 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 .hbtn{font-family:var(--sans);font-size:10px;letter-spacing:.08em;text-transform:uppercase;background:none;border:1px solid var(--border);color:var(--dim);padding:3px 9px;border-radius:2px;cursor:pointer;transition:all .15s;}
 .hbtn:hover,.hbtn.on{border-color:var(--accent);color:var(--hi);background:rgba(140,160,220,.08);}
 .hgroup{display:flex;gap:6px;}
+.icon-btn{width:24px;padding:3px 0;text-align:center;font-weight:600;}
 .theme-btn{display:flex;align-items:center;gap:5px;}
 #theme-icon{font-size:12px;line-height:1;}
 
@@ -45,6 +46,43 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 /* ── HRD CANVAS ── */
 #hrd-wrap{flex:1;min-width:0;position:relative;overflow:hidden;background:var(--bg);}
 #hrd-canvas{position:absolute;inset:0;cursor:crosshair;}
+
+/* ── Y-AXIS TOGGLE (overlaid on the diagram, top-left margin) ── */
+#yaxis-toggle{
+  position:absolute;top:7px;left:8px;z-index:14;
+  font-family:var(--sans);font-size:9px;letter-spacing:.07em;text-transform:uppercase;
+  background:rgba(8,8,18,.8);border:1px solid var(--border);color:var(--dim);
+  padding:4px 9px;border-radius:2px;cursor:pointer;transition:all .15s;backdrop-filter:blur(3px);
+}
+:root[data-theme="light"] #yaxis-toggle{background:rgba(247,249,253,.85);}
+@media (prefers-color-scheme: light){:root:not([data-theme]) #yaxis-toggle{background:rgba(247,249,253,.85);}}
+#yaxis-toggle:hover,#yaxis-toggle.on{border-color:var(--accent);color:var(--hi);}
+#hrd-wrap.quiz #yaxis-toggle{display:none;}
+/* Layer buttons that don't apply on the apparent-mag axis */
+.lbtn-na{opacity:.38;pointer-events:none;}
+
+/* ── QUIZ BAR (overlaid on the diagram, shown only in quiz mode) ── */
+#quiz-bar{
+  display:none;position:absolute;top:10px;left:10px;right:10px;z-index:15;
+  align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+  background:rgba(8,8,18,.9);border:1px solid var(--border);border-radius:4px;
+  padding:8px 12px;backdrop-filter:blur(4px);
+}
+:root[data-theme="light"] #quiz-bar{background:rgba(247,249,253,.92);}
+@media (prefers-color-scheme: light){:root:not([data-theme]) #quiz-bar{background:rgba(247,249,253,.92);}}
+#hrd-wrap.quiz #quiz-bar{display:flex;}
+#quiz-prompt{font-size:12px;color:var(--hi);font-weight:500;letter-spacing:.02em;flex:1;min-width:120px;}
+#quiz-prompt b{color:var(--accent);}
+#quiz-meta{display:flex;align-items:center;gap:8px;}
+#quiz-score{font-family:var(--mono);font-size:10px;color:var(--dim);white-space:nowrap;}
+#quiz-next,#quiz-exit{
+  font-family:var(--sans);font-size:10px;letter-spacing:.06em;text-transform:uppercase;
+  background:none;border:1px solid var(--border);color:var(--dim);padding:3px 9px;
+  border-radius:2px;cursor:pointer;transition:all .15s;
+}
+#quiz-next{border-color:var(--accent);color:var(--hi);background:rgba(140,160,220,.1);}
+#quiz-next:hover,#quiz-exit:hover{color:var(--hi);border-color:var(--accent);}
+#quiz-next[hidden]{display:none;}
 
 /* ── DRAG HANDLE (desktop only, shown when panel is open) ── */
 #drag-handle{
@@ -107,6 +145,14 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 /* ── STAR LIST (inside panel) ── */
 #slist{flex-shrink:0;border-top:1px solid var(--border);max-height:175px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent;}
 .slt{font-size:9px;letter-spacing:.13em;text-transform:uppercase;color:var(--dim);padding:7px 14px 5px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--panel);}
+.sfilter{
+  width:calc(100% - 20px);margin:7px 10px;padding:5px 9px;
+  font-family:var(--sans);font-size:11px;color:var(--hi);
+  background:rgba(140,160,220,.06);border:1px solid var(--border);border-radius:3px;
+  outline:none;transition:border-color .15s;
+}
+.sfilter:focus{border-color:var(--accent);}
+.sfilter::placeholder{color:var(--dim);}
 .si{display:flex;align-items:center;gap:7px;padding:4px 14px;cursor:pointer;transition:background .1s;border-bottom:1px solid rgba(140,160,220,.03);}
 .si:hover,.si:active{background:rgba(140,160,220,.05);}
 .si.sel{background:rgba(140,160,220,.08);}
@@ -332,4 +378,37 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
   .formula{padding:10px 11px;}
   .formula math{font-size:1.05em;}
   .u-readouts{grid-template-columns:repeat(2,1fr);}
+}
+
+/* ══════════════════════════════════════════
+   GUIDED TOUR
+   ══════════════════════════════════════════ */
+.tour-backdrop{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.45);
+  opacity:0;pointer-events:none;transition:opacity .2s;}
+.tour-backdrop.on{opacity:1;pointer-events:auto;}
+.tour-spot{position:fixed;z-index:301;border:2px solid var(--accent);border-radius:5px;
+  box-shadow:0 0 0 9999px rgba(0,0,0,.5);pointer-events:none;opacity:0;
+  transition:all .25s ease,opacity .2s;}
+.tour-spot.on{opacity:1;}
+.tour-card{position:fixed;z-index:302;width:300px;max-width:calc(100vw - 24px);
+  background:var(--panel);border:1px solid var(--accent);border-radius:6px;
+  padding:16px 16px 12px;box-shadow:0 12px 40px rgba(0,0,0,.5);
+  opacity:0;pointer-events:none;transition:opacity .2s;}
+.tour-card.on{opacity:1;pointer-events:auto;}
+.tour-title{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--hi);margin-bottom:7px;}
+.tour-text{font-size:13px;line-height:1.55;color:var(--text);margin-bottom:14px;}
+.tour-nav{display:flex;align-items:center;gap:8px;}
+.tour-count{font-family:var(--mono);font-size:10px;color:var(--dim);margin-right:auto;}
+.tour-btn,.tour-skip{font-family:var(--sans);font-size:10px;letter-spacing:.06em;
+  text-transform:uppercase;background:none;border:1px solid var(--border);color:var(--dim);
+  padding:4px 10px;border-radius:2px;cursor:pointer;transition:all .15s;}
+.tour-btn:hover,.tour-skip:hover{color:var(--hi);border-color:var(--accent);}
+.tour-btn.primary{border-color:var(--accent);color:var(--hi);background:rgba(140,160,220,.1);}
+
+@media (max-width:639px){
+  /* Header gets crowded with Quiz + tour; tighten further. */
+  .hgroup{gap:3px;}
+  .hbtn{padding:3px 5px;font-size:8.5px;letter-spacing:.04em;}
+  .icon-btn{width:20px;}
 }

@@ -24,13 +24,26 @@
       <button class="hbtn on" id="btn-explore">Explore</button>
       <button class="hbtn" id="btn-compare">Compare</button>
       <button class="hbtn" id="btn-understand">Understand</button>
+      <button class="hbtn" id="btn-quiz">Quiz</button>
     </div>
+    <button class="hbtn icon-btn" id="btn-tour" aria-label="Guided tour" title="Guided tour">?</button>
     <button class="hbtn theme-btn" id="theme-toggle" aria-label="Switch theme"><span id="theme-icon">◐</span><span id="theme-label">System</span></button>
   </header>
 
   <!-- content-area holds the HRD canvas, resize handle, and info panel side by side -->
   <div id="content-area">
-    <div id="hrd-wrap"><canvas id="hrd-canvas"></canvas></div>
+    <div id="hrd-wrap">
+      <canvas id="hrd-canvas"></canvas>
+      <button id="yaxis-toggle" aria-label="Switch y-axis between luminosity and apparent magnitude" title="Switch y-axis">y · log L</button>
+      <div id="quiz-bar">
+        <div id="quiz-prompt">Find the star</div>
+        <div id="quiz-meta">
+          <span id="quiz-score">Score 0 · Round 1</span>
+          <button id="quiz-next">Next →</button>
+          <button id="quiz-exit" aria-label="Exit quiz">Exit</button>
+        </div>
+      </div>
+    </div>
     <div id="drag-handle"></div>
     <div id="rpanel">
       <div id="sheet-grip" aria-hidden="true"></div>
@@ -54,6 +67,13 @@
           <div class="dr"><span class="dl"><i>λ</i><sub>max</sub></span><span class="dv" id="v-lmax">—</span></div>
         </div>
         <div class="dg">
+          <div class="dgt">Observed</div>
+          <div class="dr"><span class="dl">Abs. mag <i>M</i><sub>bol</sub></span><span class="dv" id="v-absmag">—</span></div>
+          <div class="dr"><span class="dl">Distance</span><span class="dv" id="v-dist">—</span></div>
+          <div class="dr"><span class="dl">Parallax</span><span class="dv" id="v-plx">—</span></div>
+          <div class="dr"><span class="dl">App. mag <i>m</i><sub>bol</sub></span><span class="dv" id="v-appmag">—</span></div>
+        </div>
+        <div class="dg">
           <div class="dgt">Main Sequence (ZAMS only)</div>
           <div class="dr"><span class="dl">Mass <i>M</i> / <i>M</i><sub>⊙</sub></span><span class="dv" id="v-mass">—</span></div>
           <div class="dr"><span class="dl">MS lifetime</span><span class="dv" id="v-life">—</span></div>
@@ -70,9 +90,17 @@
           </div>
           <div id="cmp-note">Click a second point to compare sizes.</div>
         </div>
+        <div class="dg">
+          <div class="dgt">Share &amp; Export</div>
+          <div class="lbtns">
+            <button class="lbtn" id="btn-copylink">Copy link</button>
+            <button class="lbtn" id="btn-export">Save PNG</button>
+          </div>
+        </div>
       </div>
       <div id="slist">
         <div class="slt">Known Stars</div>
+        <input type="search" class="sfilter" id="sfilter-desktop" placeholder="Filter stars…" aria-label="Filter stars">
         <div id="slist-items-desktop"></div>
       </div>
     </div>
@@ -81,6 +109,7 @@
   <!-- Stars tab pane — mobile only, full-screen list -->
   <div id="slist-wrap">
     <div class="slt">Known Stars</div>
+    <input type="search" class="sfilter" id="sfilter-mobile" placeholder="Filter stars…" aria-label="Filter stars">
     <div id="slist-items-mobile"></div>
   </div>
 

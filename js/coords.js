@@ -23,3 +23,11 @@ export function xteff(x) {
 }
 // canvas y → log(L/L☉)
 export function ylogl(y) { return LMAX - (y - R.y) / R.h * (LMAX - LMIN); }
+
+// ── Alternative y-axis: apparent bolometric magnitude ──
+// An observational view. Inverted (bright = small magnitude at top, faint at
+// bottom — the astronomers' convention). Bounds bracket the apparent bolometric
+// magnitudes of the curated stars (≈ −1.6 … +13.3) with a margin.
+export const MAGTOP = -3, MAGBOT = 16;
+export function magY(mag) { return R.y + R.h * (mag - MAGTOP) / (MAGBOT - MAGTOP); }
+export function yMag(y) { return MAGTOP + (y - R.y) / R.h * (MAGBOT - MAGTOP); }

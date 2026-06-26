@@ -5,7 +5,7 @@
 // installed. Bump CACHE on any asset change to force a refresh. Google Fonts
 // are best-effort (runtime cache); the CSS declares system fallbacks.
 
-const CACHE = 'hrd-explorer-v2';
+const CACHE = 'hrd-explorer-v3';
 
 const SHELL = [
   './',
@@ -23,6 +23,9 @@ const SHELL = [
   './js/interaction.js',
   './js/theme.js',
   './js/understand.js',
+  './js/share.js',
+  './js/quiz.js',
+  './js/tour.js',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/apple-touch-icon.png',
