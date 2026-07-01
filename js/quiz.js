@@ -2,10 +2,11 @@
 // QUIZ — "place the star" guessing logic
 // ═══════════════════════════════════
 // Pure helpers; the quiz state and banner DOM live in main.js. Scoring is done
-// in screen space (pixel distance via the shared transforms) so it matches what
-// the player actually sees, independent of axis scaling.
+// in screen space (via the shared transforms) so it matches what the player
+// actually sees — but normalised by the plot diagonal, so the same relative
+// miss scores the same on a phone as on a large monitor.
 
-import { tx, ly } from './coords.js';
+import { R, tx, ly } from './coords.js';
 import { STARS } from './stars.js';
 
 // Stars with a proper name make fair quiz targets (skip bare catalogue points).
@@ -20,18 +21,19 @@ export function pickTarget(exclude) {
   return s;
 }
 
-// Score a guess against the target. Returns pixel distance, awarded points
-// (0–100, falling off with distance) and a short verdict.
+// Score a guess against the target. Returns the miss as a fraction of the
+// plot diagonal, awarded points (0–100, falling off with distance) and a
+// short verdict. Thresholds were tuned on a ~1160 px diagonal.
 export function scoreGuess(target, guessTeff, guessLogL) {
   const dx = tx(guessTeff) - tx(target.teff);
   const dy = ly(guessLogL) - ly(target.logL);
-  const dist = Math.hypot(dx, dy);
-  const points = Math.max(0, Math.round(100 * (1 - dist / 160)));
+  const dist = Math.hypot(dx, dy) / Math.max(1, Math.hypot(R.w, R.h));
+  const points = Math.max(0, Math.round(100 * (1 - dist / 0.14)));
   let verdict;
-  if (dist < 14) verdict = 'Bullseye!';
-  else if (dist < 35) verdict = 'Great';
-  else if (dist < 70) verdict = 'Close';
-  else if (dist < 120) verdict = 'Not quite';
+  if (dist < 0.012) verdict = 'Bullseye!';
+  else if (dist < 0.03) verdict = 'Great';
+  else if (dist < 0.06) verdict = 'Close';
+  else if (dist < 0.105) verdict = 'Not quite';
   else verdict = 'Way off';
   return { dist, points, verdict };
 }

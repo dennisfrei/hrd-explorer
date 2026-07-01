@@ -31,6 +31,14 @@ export function attachHandlers(hc, state, cbs) {
   const { onUpdate, onPick, isMobile, stars, R } = cbs;
   const tip = document.getElementById('tooltip');
 
+  // Repainting the full diagram per mousemove floods low-end devices —
+  // coalesce hover redraws to one per animation frame.
+  let hoverRaf = 0;
+  const scheduleUpdate = () => {
+    if (hoverRaf) return;
+    hoverRaf = requestAnimationFrame(() => { hoverRaf = 0; onUpdate(); });
+  };
+
   hc.addEventListener('mousemove', e => {
     if (isMobile()) return;
     const rc = hc.getBoundingClientRect();
@@ -46,14 +54,17 @@ export function attachHandlers(hc, state, cbs) {
       else tip.textContent = `${stype(teff)} · ${Math.round(teff / 100) * 100} K · ${fmtR(calcR(ylogl(my), teff))}`;
       tip.style.opacity = '1'; tip.style.left = (e.clientX + 13) + 'px'; tip.style.top = (e.clientY - 22) + 'px';
     } else tip.style.opacity = '0';
-    onUpdate();
+    scheduleUpdate();
   });
 
   hc.addEventListener('mouseleave', () => { state.hover = null; tip.style.opacity = '0'; onUpdate(); });
 
   function handleTap(mx, my) {
     if (mx < R.x || mx > R.x + R.w || my < R.y || my > R.y + R.h) return;
-    const ns = nearStar(mx, my, stars, R, state);
+    // While a quiz question is open the dots are hidden — don't snap the
+    // guess to an invisible star; score the tapped point exactly as tapped.
+    const quizOpen = state.quiz && state.quiz.active && !state.quiz.revealed;
+    const ns = quizOpen ? null : nearStar(mx, my, stars, R, state);
     if (ns) { onPick(ns); return; }
     // On the apparent-mag axis an empty point has no luminosity, so free points
     // aren't created — only catalogued stars can be selected. (Quiz always runs

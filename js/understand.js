@@ -9,10 +9,9 @@
 // All physics comes from physics.js; nothing here is domain logic.
 
 import {
-  calcR, calcLmax, stype, lumClass, onZAMS, massOnZAMS, msLife, estAge, tRGB,
+  calcR, calcLmax, stype, lumClass, onZAMS, massOnZAMS, estAge, tRGB,
 } from './physics.js';
 import { fmtR, fmtLife } from './format.js';
-import { THEME } from './theme.js';
 
 const HCK = 1.438777e7; // hc/k_B in nm·K — for the Planck function
 const SPEC_MAX_NM = 1800; // spectrum x-range
@@ -61,14 +60,18 @@ function sizeCanvas() {
   const w = canvas.parentElement.clientWidth;
   if (!w) return; // overlay still hidden — refresh() re-runs when it opens
   const h = window.innerWidth < 640 ? 170 : 210;
-  canvas.width = w;
-  canvas.height = h;
+  // HiDPI: back the canvas at devicePixelRatio, draw in CSS pixels.
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
   canvas.style.height = h + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 
 function render(teff, logL, Rv) {
   if (!ctx || !canvas.width) return;
-  const W = canvas.width, H = canvas.height;
+  const t = ctx.getTransform();
+  const W = canvas.width / (t.a || 1), H = canvas.height / (t.d || 1);
   // Star colours read best on a dark sky, so the viz stays dark in both themes
   // (matching the main star-preview panel).
   ctx.clearRect(0, 0, W, H);

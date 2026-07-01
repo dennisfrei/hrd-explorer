@@ -79,9 +79,14 @@ function closePanel() {
 }
 
 // ── Selection ──
-function pick(obj) {
-  // In quiz mode a click is a guess, not a selection.
-  if (state.quiz && state.quiz.active) { handleGuess(obj.teff, obj.logL); return; }
+function pick(obj, opts = {}) {
+  // In quiz mode a diagram click is a guess, not a selection. Star-list rows
+  // are ignored while a question is open — picking the named star from the
+  // list would place a perfect guess without reading the diagram.
+  if (state.quiz && state.quiz.active) {
+    if (!opts.fromList) handleGuess(obj.teff, obj.logL);
+    return;
+  }
   const isSecond = state.compareMode && state.selStar && !(obj.name && obj.name === state.selStar.name);
   if (isSecond) {
     state.cmpStar = obj;
@@ -135,15 +140,26 @@ function goTab(tab) {
 
 // ── Resize ──
 function resize() {
+  // Back the canvases at devicePixelRatio resolution for crisp HiDPI output;
+  // all drawing stays in CSS-pixel coordinates via the context transform
+  // (renderers recover the logical size from getTransform()).
+  const dpr = window.devicePixelRatio || 1;
   const wrap = document.getElementById('hrd-wrap');
-  hc.width = wrap.clientWidth; hc.height = wrap.clientHeight;
+  const cw = wrap.clientWidth, ch = wrap.clientHeight;
+  // Canvases are replaced elements: inset:0 does not stretch them, so the
+  // display size must be pinned explicitly to CSS pixels.
+  hc.width = cw * dpr; hc.height = ch * dpr;
+  hc.style.width = cw + 'px'; hc.style.height = ch + 'px';
+  hx.setTransform(dpr, 0, 0, dpr, 0, 0);
   // Preview canvas: full width on mobile, panel width otherwise
   const panelEl = document.getElementById('rpanel');
   const pw = isMobile() ? window.innerWidth : panelEl.offsetWidth || parseInt(getComputedStyle(panelEl).width) || 320;
   const ph = isMobile() ? 160 : isTablet() ? 180 : 210;
-  sc.width = pw; sc.height = ph;
+  sc.width = pw * dpr; sc.height = ph * dpr;
+  sc.style.width = pw + 'px'; sc.style.height = ph + 'px';
+  sx.setTransform(dpr, 0, 0, dpr, 0, 0);
   const pad = { t: 28, r: 18, b: 48, l: isMobile() ? 52 : 64 };
-  setR(pad.l, pad.t, hc.width - pad.l - pad.r, hc.height - pad.t - pad.b);
+  setR(pad.l, pad.t, cw - pad.l - pad.r, ch - pad.t - pad.b);
   drawDiagram();
   if (state.panelOpen) drawSelection();
 }
@@ -191,7 +207,7 @@ sheetGrip.addEventListener('touchmove', e => {
   const dy = e.touches[0].clientY - sheetDrag.startY; // down = positive
   // Cap so the sheet never overruns the tab bar (52px) + header headroom.
   const minH = 120, maxH = window.innerHeight - 100;
-  let h = Math.min(maxH, sheetDrag.startH - dy);
+  const h = Math.min(maxH, sheetDrag.startH - dy);
   if (h < minH) {
     // Past the minimum height: translate the whole sheet down toward dismissal.
     sheetDrag.dismiss = minH - h;
@@ -261,6 +277,7 @@ const btnQuiz = document.getElementById('btn-quiz');
 function startQuiz() {
   setExplore();
   if (state.yMode !== 'lum') setYMode('lum'); // quiz is a luminosity-plane exercise
+  if (isMobile()) goTab('diagram'); // quiz lives on the diagram pane
   closePanel();
   state.quiz = { active: true, target: null, guess: null, revealed: false, score: 0, round: 0 };
   btnQuiz.classList.add('on');
@@ -351,7 +368,15 @@ const tour = initTour([
   { title: 'Theme', sel: '#theme-toggle',
     text: 'Switch between light, dark, and following your system setting.' },
 ]);
-document.getElementById('btn-tour').addEventListener('click', () => tour.start());
+document.getElementById('btn-tour').addEventListener('click', () => {
+  // The layers/share steps anchor to controls inside the panel, so make sure
+  // it is open; on mobile/tablet the panel slides in, so wait for the
+  // transition before the tour measures its targets.
+  const wasOpen = state.panelOpen;
+  openPanel();
+  const delay = (isMobile() || isTablet()) && !wasOpen ? 350 : 0;
+  setTimeout(() => tour.start(), delay);
+});
 
 const scaleBtn = document.getElementById('scale-toggle');
 const SCALE_MODES = ['log', 'real', 'norm'];
@@ -405,10 +430,13 @@ document.addEventListener('keydown', e => {
   if (understandEl.classList.contains('is-open') || document.body.classList.contains('tour-on')) return;
   if (state.quiz && state.quiz.active) return;
   if (state.yMode === 'appmag') return; // free points have no luminosity to nudge
-  if (!state.selStar) return;
+  // In compare mode pick() routes the nudged point into cmpStar, so once a
+  // compare star exists it is the one being walked — start each step from it.
+  const base = (state.compareMode && state.cmpStar) ? state.cmpStar : state.selStar;
+  if (!base) return;
   e.preventDefault();
   const mult = e.shiftKey ? 4 : 1;
-  let logT = Math.log10(state.selStar.teff), logL = state.selStar.logL;
+  let logT = Math.log10(base.teff), logL = base.logL;
   if (e.key === 'ArrowLeft') logT += KEY_STEP_T * mult;   // hotter is to the left
   if (e.key === 'ArrowRight') logT -= KEY_STEP_T * mult;
   if (e.key === 'ArrowUp') logL += KEY_STEP_L * mult;
@@ -454,8 +482,9 @@ refreshThemeButton(getPref());
 attachHandlers(hc, state, { onUpdate: drawDiagram, onPick: pick, isMobile, stars: STARS, R });
 
 // ── Init ──
-buildListIn('slist-items-desktop', pick);
-buildListIn('slist-items-mobile', pick);
+const pickFromList = s => pick(s, { fromList: true });
+buildListIn('slist-items-desktop', pickFromList);
+buildListIn('slist-items-mobile', pickFromList);
 
 window.addEventListener('resize', () => {
   // Re-apply mobile tab state in case orientation changed
@@ -482,7 +511,14 @@ function restoreFromHash() {
   }
   const resolve = (name, point) => {
     if (name) return STARS.find(s => s.name === name) || null;
-    if (point) { const [t, y] = point; return { teff: t, logL: y, name: null, spec: stype(t) }; }
+    if (point) {
+      // Hand-edited hashes can carry garbage — validate and clamp to bounds.
+      const [t, y] = point;
+      if (!Number.isFinite(t) || !Number.isFinite(y)) return null;
+      const teff = Math.max(TMIN, Math.min(TMAX, t));
+      const logL = Math.max(LMIN, Math.min(LMAX, y));
+      return { teff, logL, name: null, spec: stype(teff) };
+    }
     return null;
   };
   const sel = resolve(h.selName, h.selPoint);

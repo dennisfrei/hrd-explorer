@@ -5,7 +5,7 @@
 // installed. Bump CACHE on any asset change to force a refresh. Google Fonts
 // are best-effort (runtime cache); the CSS declares system fallbacks.
 
-const CACHE = 'hrd-explorer-v3';
+const CACHE = 'hrd-explorer-v4';
 
 const SHELL = [
   './',
@@ -29,6 +29,7 @@ const SHELL = [
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/apple-touch-icon.png',
+  './icons/favicon-64.png',
 ];
 
 self.addEventListener('install', (e) => {
@@ -58,7 +59,9 @@ self.addEventListener('fetch', (e) => {
           }
           return res;
         })
-        .catch(() => caches.match('./index.html'));
+        // Offline fallback: only page navigations get the app shell —
+        // returning HTML for a failed image/font request would corrupt it.
+        .catch(() => (req.mode === 'navigate' ? caches.match('./index.html') : Response.error()));
     })
   );
 });

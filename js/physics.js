@@ -41,31 +41,51 @@ export const ZAMS = [
   [48400, 5.95, 60.0], [49700, 6.18, 85.0], [51200, 6.44, 120.0]
 ];
 
+// Low-mass main-sequence extension: [Teff, log(L/L☉), M/M☉], approximate
+// anchors from the Pecaut & Mamajek (2013) dwarf calibration, blended to meet
+// the Ekström grid at 0.8 M☉. The Ekström+2012 grid stops at 0.8 M☉, which
+// left zamsL() flat at −0.61 for everything cooler — misclassifying the M
+// dwarfs (Proxima, Barnard's) as white dwarfs and denying them a mass/age.
+// Used ONLY by the lookup helpers below; the ZAMS *line drawn in the diagram*
+// remains pure Ekström+2012 (2026-07-02 SAIL review, scientist-approved).
+const ZAMS_LOWM = [
+  [2900, -3.05, 0.10], [3050, -2.55, 0.16], [3200, -2.05, 0.23],
+  [3350, -1.65, 0.36], [3500, -1.35, 0.44], [3850, -0.95, 0.57],
+  [4400, -0.75, 0.68],
+];
+const ZAMS_FULL = [...ZAMS_LOWM, ...ZAMS];
+
 export function zamsL(teff) {
-  if (teff <= ZAMS[0][0]) return ZAMS[0][1];
-  if (teff >= ZAMS[ZAMS.length - 1][0]) return ZAMS[ZAMS.length - 1][1];
-  for (let i = 0; i < ZAMS.length - 1; i++) {
-    const [t1, l1] = ZAMS[i], [t2, l2] = ZAMS[i + 1];
+  if (teff <= ZAMS_FULL[0][0]) return ZAMS_FULL[0][1];
+  if (teff >= ZAMS_FULL[ZAMS_FULL.length - 1][0]) return ZAMS_FULL[ZAMS_FULL.length - 1][1];
+  for (let i = 0; i < ZAMS_FULL.length - 1; i++) {
+    const [t1, l1] = ZAMS_FULL[i], [t2, l2] = ZAMS_FULL[i + 1];
     if (teff >= t1 && teff <= t2) { const f = (teff - t1) / (t2 - t1); return l1 + f * (l2 - l1); }
   }
   return 0;
 }
 
-// Spec §5.2 / §7: mass is only well-defined on the ZAMS band.
-export function onZAMS(logL, teff) { return Math.abs(logL - zamsL(teff)) < 0.55 && logL > -2.5; }
+// Spec §5.2 / §7: mass is only well-defined on the ZAMS band. The faint floor
+// keeps the degenerate corner out even where the band test would be marginal.
+export function onZAMS(logL, teff) { return Math.abs(logL - zamsL(teff)) < 0.55 && logL > -3.4; }
 
 export function massOnZAMS(teff) {
-  if (teff <= ZAMS[0][0]) return ZAMS[0][2];
-  if (teff >= ZAMS[ZAMS.length - 1][0]) return ZAMS[ZAMS.length - 1][2];
-  for (let i = 0; i < ZAMS.length - 1; i++) {
-    const [t1, l1, m1] = ZAMS[i], [t2, l2, m2] = ZAMS[i + 1];
+  if (teff <= ZAMS_FULL[0][0]) return ZAMS_FULL[0][2];
+  if (teff >= ZAMS_FULL[ZAMS_FULL.length - 1][0]) return ZAMS_FULL[ZAMS_FULL.length - 1][2];
+  for (let i = 0; i < ZAMS_FULL.length - 1; i++) {
+    const [t1, l1, m1] = ZAMS_FULL[i], [t2, l2, m2] = ZAMS_FULL[i + 1];
     if (teff >= t1 && teff <= t2) { const f = (teff - t1) / (t2 - t1); return m1 + f * (m2 - m1); }
   }
   return null;
 }
 
-// Main-sequence lifetime (spec §2.3): t_MS ≈ 10^10 · (M/M☉)^(−2.5)
-export function msLife(m) { return 1e10 * Math.pow(m, -2.5); }
+// Main-sequence lifetime (spec §2.3): t_MS ≈ 10^10 · (M/M☉)^(−2.5), plus an
+// additive 2.8 Myr floor. The bare power law assumes L ∝ M^3.5, which fails
+// above ~20 M☉ where luminosity flattens toward the Eddington limit — it gave
+// a 120 M☉ star 63 kyr instead of ~2.9 Myr. The floored form tracks the
+// Ekström+2012 MS lifetimes across the whole grid (20 M☉ → 8.4 Myr,
+// 60 → 3.2, 120 → 2.9) while leaving the taught low-mass law untouched.
+export function msLife(m) { return 1e10 * Math.pow(m, -2.5) + 2.8e6; }
 
 // Estimated age — simplified educational model.
 // A star found on the main sequence has an age somewhere between 0 (when it
@@ -84,12 +104,15 @@ export function estAge(logL, teff) {
   return f * msLife(m);
 }
 
-// Luminosity class label (spec §2.5)
+// Luminosity class label (spec §2.5). Classified by offset from the ZAMS:
+// the old absolute-luminosity cut (logL < −1.8 → white dwarf) misfired on
+// faint M dwarfs — Proxima Cen read "White Dwarf". Below the MS band, hot
+// and/or far-under-luminous stars are the compact degenerates; cool, mildly
+// under-luminous ones are metal-poor subdwarfs (class VI, e.g. Kapteyn's).
 export function lumClass(logL, teff) {
   const d = logL - zamsL(teff);
-  if (logL < -1.5 && teff > 6000) return 'VII · White Dwarf';
-  if (logL < -1.8) return 'VII · White Dwarf';
-  if (d > -0.55 && d < 0.55) return 'V · Main Sequence';
+  if (d < -0.55) return (teff > 6000 || d < -2.0) ? 'VII · White Dwarf' : 'VI · Subdwarf';
+  if (d < 0.55) return 'V · Main Sequence';
   if (d < 1.2) return 'IV · Subgiant';
   if (logL < 2.8) return 'III · Giant';
   if (logL < 4.3) return 'II · Bright Giant';

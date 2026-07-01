@@ -53,7 +53,7 @@ export function initTour(steps, { onStep } = {}) {
     if (onStep) onStep(step);
     // Bring panel-internal targets (e.g. controls inside the mobile bottom
     // sheet) into view before measuring.
-    if (t) { try { t.scrollIntoView({ block: 'center', inline: 'nearest' }); } catch (e) { /* ignore */ } }
+    if (t) { try { t.scrollIntoView({ block: 'center', inline: 'nearest' }); } catch { /* ignore */ } }
     const r = t ? t.getBoundingClientRect() : null;
     if (!t || !rectOnScreen(r)) {
       // No usable on-screen anchor: dim uniformly and centre the card, so it is

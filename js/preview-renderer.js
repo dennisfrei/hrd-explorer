@@ -16,7 +16,10 @@ export function rToPx(Rv, scaleMode) {
 }
 
 export function drawPreview(sx, teffA, logLA, dataB, scaleMode) {
-  const W = sx.canvas.width, H = sx.canvas.height;
+  // Logical (CSS-pixel) size — the backing store is HiDPI-scaled via the
+  // context transform set in main.js resize().
+  const t = sx.getTransform();
+  const W = sx.canvas.width / (t.a || 1), H = sx.canvas.height / (t.d || 1);
   sx.clearRect(0, 0, W, H); sx.fillStyle = '#020204'; sx.fillRect(0, 0, W, H);
   const RA = calcR(logLA, teffA);
   const capPx = H * 0.44;
@@ -35,7 +38,7 @@ export function drawPreview(sx, teffA, logLA, dataB, scaleMode) {
     sx.fillStyle = 'rgba(140,160,220,0.45)'; sx.font = '9px JetBrains Mono,monospace'; sx.textAlign = 'center';
     sx.fillText(fmtR(RA), W * 0.27, H - 7); sx.fillText(fmtR(RB), W * 0.75, H - 7);
   } else {
-    let rPx = scaleMode === 'norm' ? H * 0.3 : rToPx(RA, scaleMode);
+    const rPx = scaleMode === 'norm' ? H * 0.3 : rToPx(RA, scaleMode);
     const clipped = scaleMode !== 'norm' && rPx > capPx;
     drawStar(sx, W / 2, H / 2, Math.min(rPx, capPx), teffA, clipped);
     sx.fillStyle = 'rgba(140,160,220,0.4)'; sx.font = '9px JetBrains Mono,monospace'; sx.textAlign = 'right';

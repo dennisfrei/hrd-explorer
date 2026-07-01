@@ -13,7 +13,8 @@ import { THEME } from './theme.js';
 export function exportPNG(hc, drawFn, caption) {
   const scale = 2;
   const capH = 30;
-  const W = hc.width, H = hc.height;
+  // Logical (CSS-pixel) size — hc.width is the HiDPI backing store.
+  const W = hc.clientWidth, H = hc.clientHeight;
   const ec = document.createElement('canvas');
   ec.width = W * scale;
   ec.height = (H + capH) * scale;

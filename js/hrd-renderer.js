@@ -39,7 +39,10 @@ function mathLabel(hx, cx, y, parts, baseFont, subFont) {
 }
 
 export function drawHRD(hx, R, state) {
-  const W = hx.canvas.width, H = hx.canvas.height;
+  // Logical (CSS-pixel) size: the backing store may be scaled for HiDPI or
+  // PNG export, so divide the raw canvas size by the context transform.
+  const t = hx.getTransform();
+  const W = hx.canvas.width / (t.a || 1), H = hx.canvas.height / (t.d || 1);
   const appmag = state.yMode === 'appmag';
   hx.clearRect(0, 0, W, H);
   hx.fillStyle = THEME.hrdBg; hx.fillRect(0, 0, W, H);
@@ -48,7 +51,7 @@ export function drawHRD(hx, R, state) {
   // ZAMS, R-isolines and region labels are loci of (Teff, L) with no fixed
   // apparent-magnitude position, so they only appear on the luminosity axis.
   if (!appmag && state.layers.radius) drawRiso(hx, R);
-  if (!appmag && state.layers.zams) drawZAMSline(hx, R);
+  if (!appmag && state.layers.zams) drawZAMSline(hx);
   if (!appmag && state.layers.regions) drawRegions(hx, R);
   drawAxes(hx, R, appmag);
   // While a quiz question is unanswered the known-star dots are hidden so the
@@ -74,7 +77,7 @@ function drawQuiz(hx, R, q) {
   const tX = tx(q.target.teff), tY = ly(q.target.logL);
   if (q.guess) {
     const gX = tx(q.guess.teff), gY = ly(q.guess.logL);
-    hx.strokeStyle = 'rgba(255,255,255,0.5)'; hx.lineWidth = 1; hx.setLineDash([3, 4]);
+    hx.strokeStyle = ink(0.55); hx.lineWidth = 1; hx.setLineDash([3, 4]);
     hx.beginPath(); hx.moveTo(gX, gY); hx.lineTo(tX, tY); hx.stroke(); hx.setLineDash([]);
     hx.strokeStyle = 'rgba(255,105,105,0.95)'; hx.lineWidth = 2;
     hx.beginPath();
@@ -88,13 +91,26 @@ function drawQuiz(hx, R, q) {
   hx.fillText(q.target.name, tX + (hx.textAlign === 'right' ? -12 : 12), tY + 3);
 }
 
+// The blackbody wash is ~400 gradient columns — too costly to recompute on
+// every repaint (hover redraws included), so render it once per plot-rect ×
+// theme into an offscreen canvas and blit it.
+let bgCache = null; // { key, canvas }
 function drawColorBG(hx, R) {
-  const a = THEME.isLight ? 0.14 : 0.06;
-  for (let px = 0; px < R.w; px += 3) {
-    const [r2, g, b] = tRGB(xteff(R.x + px));
-    hx.fillStyle = `rgba(${r2},${g},${b},${a})`;
-    hx.fillRect(R.x + px, R.y, 3, R.h);
+  if (R.w <= 0 || R.h <= 0) return;
+  const key = `${R.x}|${R.y}|${R.w}|${R.h}|${THEME.isLight}`;
+  if (!bgCache || bgCache.key !== key) {
+    const c = document.createElement('canvas');
+    c.width = Math.ceil(R.w); c.height = Math.ceil(R.h);
+    const cx = c.getContext('2d');
+    const a = THEME.isLight ? 0.14 : 0.06;
+    for (let px = 0; px < R.w; px += 3) {
+      const [r2, g, b] = tRGB(xteff(R.x + px));
+      cx.fillStyle = `rgba(${r2},${g},${b},${a})`;
+      cx.fillRect(px, 0, 3, R.h);
+    }
+    bgCache = { key, canvas: c };
   }
+  hx.drawImage(bgCache.canvas, R.x, R.y);
 }
 
 function drawGrid(hx, R, appmag) {
@@ -140,7 +156,7 @@ function drawRiso(hx, R) {
   });
 }
 
-function drawZAMSline(hx, R) {
+function drawZAMSline(hx) {
   hx.strokeStyle = `rgba(${THEME.zams},${THEME.isLight ? 0.55 : 0.28})`; hx.lineWidth = 1.8; hx.setLineDash([]);
   hx.beginPath(); let first = true;
   ZAMS.forEach(([teff, logL]) => {
